@@ -1,135 +1,166 @@
 import json
-from os import listdir
+import os
 import ROOT
 import numpy as np
+from re import search
+from time import mktime
+from datetime import datetime
 
 def parse_file(filename: str):
     with open(filename, 'r') as f:
         data = json.load(f)
     return data
-#returns the index at the point closest to the half maximum of the hits array
+
+# Returns the index at the point closest to the half maximum of the hits array
 def find_first_HM(vth: np.array, hits: np.array) -> int:
-    half_max_hit = hits.max()/2.
+    half_max_hit = hits.max() / 2.
     idx = (np.abs(hits - half_max_hit)).argmin()
     return idx
 
+# Extracts bias, temperature, and pixel from the directory path
+def extract_info(s: str):
+    voltage_match = search(r'(\d+V)', s)
+    voltage = voltage_match.group(1) if voltage_match else None
 
-# Module ID and timestamp
+    temperature_match = search(r'(-?\d+C)', s)
+    temperature = temperature_match.group(1) if temperature_match else None
+
+    pixel_match = search(r'(\d+-\d+)', s)
+    pixel = pixel_match.group(1) if pixel_match else None
+
+    return voltage, temperature, pixel
+
+# Module ID and list of timestamps to process
 module_id = 43
-timestamps = []
-timestamp = "2024-10-01-13-00-17"
+timestamps = ["2024-10-01-11-55-39","2024-10-01-12-07-27","2024-10-01-12-16-44","2024-10-01-12-28-02","2024-10-01-12-37-39", "2024-10-01-12-48-40", "2024-10-01-13-00-17"]  # List of timestamps
+dose = "0E14"
+
 dir_path = "../from_systest_pc/outputs/"
-filepath = dir_path + str(module_id) + "/" + timestamp + "/"
+path_results_qinj = "../from_systest_pc/results/" + str(module_id) + "/"
+    
+# Find corresponding voltage, temperature, and pixel information
+# Assumes the user is smart enought to provide timestamps of the same series
+all_dirs_there = [entry for entry in os.listdir(path_results_qinj) if os.path.isdir(os.path.join(path_results_qinj, entry))]
+for dir in all_dirs_there:
+    if timestamps[0] in dir:
+        voltage, temperature, pixel = extract_info(dir.replace(timestamps[0], ""))
 
-#to be recovered inside the results/ directory (TODO)
-dose = "6E14"
-bias = 60
-pixel = "15-11"
-temperature = "-20C"
-outfilename = f"results_mod{str(module_id)}_{pixel}_{str(bias)}V_{dose}.root"
-
-# Find all json files
-json_files = [file for file in listdir(filepath) if file.endswith('.json')]
-
-#lists with the results
-charges, width, width_norm, sigma_left, sigma_right = [], [], [], [], []
-
-mg = ROOT.TMultiGraph()
-legend = ROOT.TLegend(0.75, 0.75, 0.9, 0.9)
-canvas = ROOT.TCanvas("canvas", "S curve for Qinj", 800, 600)
-graphs = []
-fit_functions_left, fit_functions_right = [], []
-lowLim_left, highLim_left = 350,388
-
-lowLim_right, highLim_right = [380.,430.,410.,500.],[420.,480.,500.,580.]
-
-# Loop through each json file
-for i, file in enumerate(json_files):
-    charges.append(float(file.split('_')[-1].split('.')[0]))  # Extract charge from filename
-
-print(json_files)
-#sorting the files based on the charges order  
-charges, json_files = zip(*sorted(list(zip(charges, json_files)), key=lambda x: x[0]))
-
-for i, file in enumerate(json_files):
-    data = parse_file(dir_path + file)
-
-    vth = np.array(data['vth'], dtype='float64')  # Convert to numpy array of type float64
-    hits = np.array(data['hits'], dtype='float64')  # Convert to numpy array of type float64
-
-    # Create TGraph with vth and hits data
-    graph_hits = ROOT.TGraph(len(vth), vth, hits)
-    fit_functions_left.append(ROOT.TF1(f"fit_left{i}","gaus",lowLim_left, highLim_left))
-    fit_functions_left[i].SetLineColor(i+1)
-    #fit_functions_left[i].SetParameter(0,(lowLim_left+highLim_left)/2.)
-    #fit_functions_left[i].SetParameter(1,20)
-    #fit_functions_left[i].SetParameter(2,8.)
-    #fit_functions_left[i].SetParameter(3,4.)
-
-    fit_functions_right.append(ROOT.TF1(f"fit_right{i}","TMath::Erfc((x-[0])/[1])*[2]+[3]",lowLim_right[i], highLim_right[i]))
-    fit_functions_right[i].SetLineColor(i+1)
-    fit_functions_right[i].SetParameters((lowLim_right[i]+highLim_right[i])/2.,20.,8.,4.)
-
-    graph_hits.Fit(fit_functions_left[i],'R+')
-    graph_hits.Fit(fit_functions_right[i],'R+')
-
-    # Set graph properties (e.g., title, markers)
-    graph_hits.SetMarkerStyle(20)
-    graph_hits.SetMarkerColor(i + 1)  # Different color for each graph
-    graph_hits.SetLineColor(i + 1)  # Same color for the line
-
-    #computing and storing relevand variables
-    x_left = fit_functions_left[i].GetParameter(1)-fit_functions_left[i].GetParameter(2)*ROOT.TMath.Sqrt(2*ROOT.TMath.Log(2))
-    x_right = fit_functions_right[i].GetParameter(0)
-    width.append(abs(x_left-x_right))
-    width_norm.append(width[i]/charges[i])
-    sigma_left.append(fit_functions_left[i].GetParameter(2))
-    sigma_right.append(fit_functions_right[i].GetParameter(1))
-
-    mg.Add(graph_hits)
-    legend.AddEntry(graph_hits, f'{charges[i]} fC', 'lp')
-
-mg.Draw("AP")
-mg.SetTitle("S curve for Qinj; Vth; Hit rate")
-
-# Draw legend
-legend.Draw()
-
-# Show the canvas
-canvas.Update()
-canvas.Draw()
-
-
-# Adding the obtained info to a root file with the timestamp as reference
-outFile =  ROOT.TFile.Open(outfilename,'RECREATE')
+# Create the output ROOT file
+outfilename = f"results_mod{str(module_id)}_{pixel}_{dose}_{temperature}.root"
+outFile = ROOT.TFile.Open(outfilename, 'RECREATE')
 tree = ROOT.TTree("qinj_results", "qinj_results")
+
+# Variables to store data in the TTree
 t_charge = np.zeros(1, dtype=int)
 t_width = np.zeros(1, dtype=float)
 t_width_norm = np.zeros(1, dtype=float)
 t_sigma_left = np.zeros(1, dtype=float)
 t_sigma_right = np.zeros(1, dtype=float)
+t_timestamp = np.zeros(1, dtype=float)
+t_bias = np.zeros(1, dtype=int)
 
-from time import mktime
-from datetime import datetime
-#t_timestamp = ROOT.std.string(timestamp) 
-t_timestamp = np.zeros(1, dtype=float) # not human readable, just a float for making graphs
-timestamp_float = float(mktime(datetime.strptime(timestamp, "%Y-%m-%d-%H-%M-%S").timetuple()))
-# Step
+# Define branches
 tree.Branch("charge", t_charge, "charge/I")
 tree.Branch("width", t_width, "width/D")
 tree.Branch("width_norm", t_width_norm, "width_norm/D")
 tree.Branch("sigma_left", t_sigma_left, "sigma_left/D")
 tree.Branch("sigma_right", t_sigma_right, "sigma_right/D")
 tree.Branch("timestamp", t_timestamp, "timestamp/D")
-for i in range(len(charges)):
-    t_charge[0] =  charges[i]
-    t_width[0] = width[i]
-    t_width_norm[0] = width_norm[i]
-    t_sigma_left[0] = sigma_left[i]
-    t_sigma_right[0] = sigma_right[i]
-    t_timestamp[0] = timestamp_float
-    tree.Fill()
+tree.Branch("voltage", t_bias, "voltage/I")
+
+lowLim_left, highLim_left = 350, 388
+lowLim_right, highLim_right = [380., 430., 410., 500.], [440., 485., 520., 580.]
+
+# Loop through all timestamps
+for timestamp in timestamps:
+
+    mg = ROOT.TMultiGraph()
+    legend = ROOT.TLegend(0.75, 0.75, 0.9, 0.9)
+    canvas = ROOT.TCanvas("canvas", "S curve for Qinj", 800, 600)
+
+    filepath = dir_path + str(module_id) + "/" + timestamp + "/"
+    
+    # Find corresponding voltage, temperature, and pixel information
+    all_dirs_there = [entry for entry in os.listdir(path_results_qinj) if os.path.isdir(os.path.join(path_results_qinj, entry))]
+    for dir in all_dirs_there:
+        if timestamp in dir:
+            voltage, temperature, pixel = extract_info(dir.replace(timestamp, ""))
+
+    # Find all json files for the current timestamp
+    json_files = [file for file in os.listdir(filepath) if file.endswith('.json')]
+
+    # Lists to store the results for this timestamp
+    charges, width, width_norm, sigma_left, sigma_right = [], [], [], [], []
+
+    # Process each json file for this timestamp
+    for i, file in enumerate(json_files):
+        charges.append(float(file.split('_')[-1].split('.')[0]))  # Extract charge from filename
+
+    # Sort files based on the charge values
+    charges, json_files = zip(*sorted(list(zip(charges, json_files)), key=lambda x: x[0]))
+
+    for i, file in enumerate(json_files):
+        data = parse_file(filepath + file)
+
+        vth = np.array(data['vth'], dtype='float64')  # Convert to numpy array of type float64
+        hits = np.array(data['hits'], dtype='float64')  # Convert to numpy array of type float64
+
+        # Create TGraph with vth and hits data
+        graph_hits = ROOT.TGraph(len(vth), vth, hits)
+        fit_functions_left = ROOT.TF1(f"fit_left_{timestamp}_{i}", "gaus", lowLim_left, highLim_left)
+        fit_functions_left.SetLineColor(i + 1)
+
+        fit_functions_right = ROOT.TF1(f"fit_right_{timestamp}_{i}", "TMath::Erfc((x-[0])/[1])*[2]+[3]", lowLim_right[i], highLim_right[i])
+        fit_functions_right.SetLineColor(i + 1)
+        fit_functions_right.SetParameters((lowLim_right[i] + highLim_right[i]) / 2., 20., 8., 4.)
+
+        # Perform the fits
+        graph_hits.Fit(fit_functions_left, 'QR+')
+        graph_hits.Fit(fit_functions_right, 'QR+')
+
+        # Set graph properties
+        graph_hits.SetMarkerStyle(20)
+        graph_hits.SetMarkerColor(i + 1)
+        graph_hits.SetLineColor(i + 1)
+
+        # Compute and store relevant variables
+        x_left = fit_functions_left.GetParameter(1) - fit_functions_left.GetParameter(2) * ROOT.TMath.Sqrt(2 * ROOT.TMath.Log(2))
+        x_right = fit_functions_right.GetParameter(0)
+        width.append(abs(x_left - x_right))
+        width_norm.append(width[i] / charges[i])
+        sigma_left.append(fit_functions_left.GetParameter(2))
+        sigma_right.append(fit_functions_right.GetParameter(1))
+
+        # Add graph to the multigraph
+        mg.Add(graph_hits)
+        legend.AddEntry(graph_hits, f'{charges[i]} fC', 'lp')
+
+        # Fill the TTree
+        t_charge[0] = charges[i]
+        t_width[0] = width[i]
+        t_width_norm[0] = width_norm[i]
+        t_sigma_left[0] = sigma_left[i]
+        t_sigma_right[0] = sigma_right[i]
+        t_timestamp[0] = float(mktime(datetime.strptime(timestamp, "%Y-%m-%d-%H-%M-%S").timetuple()))
+        t_bias[0] = int(voltage.replace("V",""))
+        tree.Fill()
+
+    # Draw the multigraph
+    mg.Draw("AP")
+    mg.SetTitle("S curve for Qinj; Vth; Hit rate")
+
+    # Draw the legend
+    legend.Draw()
+
+    # Update and show the canvas
+    canvas.Update()
+    canvas.Draw()
+    canvas.SaveAs(f"Qinj_vs_Vth_{voltage}.png")
+
+# Write the TTree and close the file
 tree.Write()
 outFile.Close()
+
+print(f"Data saved to {outfilename}")
 
 input('press ENTER to quit')
