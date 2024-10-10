@@ -166,3 +166,5 @@ cython_debug/
 *.png
 2x2UFSD4_W17_T9_-20C_unirr/*
 2x2UFSD4_W17_T9_-20C_6e14/*
+2x2UFSD4_W17_T9_RT_unirr_lightoff/*
+2x2UFSD4_W17_T9_RT_unirr_lighton/*
