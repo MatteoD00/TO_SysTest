@@ -46,8 +46,8 @@ dose = "0E14"
 fit_options = "QR+"
 current = currents
 
-dir_path = "../from_systest_pc/outputs/"
-path_results_qinj = "../from_systest_pc/results/" + str(module_id) + "/"
+dir_path = "../../Systest/data_from_systest_pc/outputs/"
+path_results_qinj = "../../Systest/data_from_systest_pc/results/" + str(module_id) + "/"
 
 outdir = "2x2HPK2_split4_RT_unirr_lightoff/"
 
@@ -86,9 +86,13 @@ tree.Branch("sigma_right", t_sigma_right, "sigma_right/D")
 tree.Branch("timestamp", t_timestamp, "timestamp/D")
 tree.Branch("voltage", t_bias, "voltage/I")
 
-lowLim_left, highLim_left = 50, 70
-lowLim_right, highLim_right = [67., 75., 85., 100., 110.], [90., 100., 115., 130., 140.]
+lowLim_left, highLim_left = 62, 68
+lowLim_right, highLim_right = [70., 75., 83., 100., 105.], [87., 100., 112., 125., 140.]
 
+lowLim_left_0V, highLim_left_0V = [65., 65., 65, 65, 65], [75., 77., 83., 83., 83.]
+lowLim_right_0V, highLim_right_0V = [74., 75., 77., 78., 85.], [87., 100., 112., 95., 105.]
+
+change_bias_100V_25fC = -10
 # Loop through all timestamps
 for j, timestamp in enumerate(timestamps):
 
@@ -118,6 +122,8 @@ for j, timestamp in enumerate(timestamps):
     charges, json_files = zip(*sorted(list(zip(charges, json_files)), key=lambda x: x[0]))
 
     for i, file in enumerate(json_files):
+        #if voltage[i] == "150V":
+        #    continue
         data = parse_file(filepath + file)
 
         vth = np.array(data['vth'], dtype='float64')  # Convert to numpy array of type float64
@@ -130,15 +136,20 @@ for j, timestamp in enumerate(timestamps):
         #if charges[i] == 15:
         #    fit_functions_left = ROOT.TF1(f"fit_left_{timestamp}_{i}", fit_function_left_formula, lowLim_left, highLim_left+30)
         #else:
-        #    fit_functions_left = ROOT.TF1(f"fit_left_{timestamp}_{i}", fit_function_left_formula, lowLim_left, highLim_left)
-        fit_functions_left = ROOT.TF1(f"fit_left_{timestamp}_{i}", fit_function_left_formula, lowLim_left, highLim_left+charges[i]*1.5)
-            
+        #    fit_functions_left = ROOT.TF1(f"fit_left_{timestamp}_{i}", fit_function_left_formula, lowLim_left, highLim_left) 
+        if int(voltage.replace("V","")) == 0:
+            fit_functions_left = ROOT.TF1(f"fit_left_{timestamp}_{i}", fit_function_left_formula, lowLim_left_0V[i], highLim_left_0V[i])
+            fit_functions_right = ROOT.TF1(f"fit_right_{timestamp}_{i}", "TMath::Erfc((x-[0])/[1])*[2]+[3]", lowLim_right_0V[i], highLim_right_0V[i])
+        else:
+            fit_functions_left = ROOT.TF1(f"fit_left_{timestamp}_{i}", fit_function_left_formula, lowLim_left, highLim_left+charges[i]*1.25)
+            fit_functions_right = ROOT.TF1(f"fit_right_{timestamp}_{i}", "TMath::Erfc((x-[0])/[1])*[2]+[3]", lowLim_right[i], highLim_right[i])
+
+        if int(voltage.replace("V","")) == 100 and charges[i] == 25:
+            fit_functions_left = ROOT.TF1(f"fit_left_{timestamp}_{i}", fit_function_left_formula, 65, 85)
         fit_functions_left.SetLineColor(i + 1)
         if "Erf" in fit_function_left_formula:
             fit_functions_left.SetLineColor(i + 1)
-            fit_functions_left.SetParameters((lowLim_left + highLim_left) / 2., 20., 8., 4.) 
-    
-        fit_functions_right = ROOT.TF1(f"fit_right_{timestamp}_{i}", "TMath::Erfc((x-[0])/[1])*[2]+[3]", lowLim_right[i], highLim_right[i])
+            fit_functions_left.SetParameters((lowLim_left + highLim_left) / 2., 20., 8., 4.)
         fit_functions_right.SetLineColor(i + 1)
         fit_functions_right.SetParameters((lowLim_right[i] + highLim_right[i]) / 2., 20., 8., 4.)
 
@@ -183,7 +194,7 @@ for j, timestamp in enumerate(timestamps):
 
     # Draw the multigraph
     mg.Draw("AP")
-    mg.SetTitle("S curve for Qinj; Vth; Hit rate")
+    mg.SetTitle(f"S curve for Qinj - {voltage}; Vth; Hit rate")
 
     # Draw the legend
     legend.Draw()
