@@ -36,7 +36,7 @@ def extract_info(s: str):
 # Module ID and list of timestamps to process
 module_id = 21 #43
 #timestamps_unirr_negtemp = ["2024-10-01-11-55-39","2024-10-01-12-07-27","2024-10-01-12-16-44","2024-10-01-12-28-02","2024-10-01-12-37-39", "2024-10-01-12-48-40", "2024-10-01-13-00-17"]  # good for series at -20C, unirradiated
-timestamps_10e14_negtemp = ["2024-10-10-15-00-22","2024-10-10-15-15-26","2024-10-10-15-23-42","2024-10-10-15-43-55","2024-10-10-16-00-51","2024-10-10-16-16-17","2024-10-10-17-57-44","2024-10-10-18-09-56"]  # good for series at -20C, 10e14    -->     omitted "2024-10-10-18-17-57" measurement @400V due to strange curves
+timestamps_10e14_negtemp = ["2024-10-10-15-00-22","2024-10-10-15-23-42","2024-10-10-15-43-55","2024-10-10-16-00-51","2024-10-10-16-16-17","2024-10-10-17-57-44","2024-10-10-18-09-56"]  # good for series at -20C, 10e14    -->     omitted "2024-10-10-18-17-57" measurement @400V due to strange curves
 timestamps = timestamps_10e14_negtemp
 dose = "10E14"
 fit_options = "QR+"
@@ -86,9 +86,9 @@ if len(current):
 
 #lowLim_left, highLim_left = 350, 388 # good for series at -20C, unirradiated
 #lowLim_right, highLim_right = [380., 430., 410., 500.], [450., 485., 520., 580.] # good for series at -20C, unirradiated
-lowLim_left, highLim_left = [100,100,100,100,120,120,140,150], [140,140,140,145,155,165,170,185] # good for series at -20C, 10e14
-lowLim_right = [[140,200,240,330], [140,190,240,320], [140,190,240,320], [140,160,180,220], [150,170,190,220], [160,180,200,240], [170,190,210,250], [180,210,230,270]] 
-highLim_right = [[170,230,280,370], [170,230,280,360], [170,220,280,360], [180,220,240,280], [190,220,250,290], [190,230,260,300], [200,240,270,310], [220,250,280,330]] # good for series at -20C, 10e14
+lowLim_left, highLim_left = [100,100,100,120,120,140,150], [135,140,145,155,165,170,185] # good for series at -20C, 10e14
+lowLim_right = [[140,200,240,330], [135,190,240,320], [145,160,180,210], [145,178,190,220], [160,180,200,240], [170,190,210,250], [180,210,230,270]] 
+highLim_right = [[170,230,280,370], [170,240,280,360], [210,220,245,280], [200,240,250,295], [190,230,260,300], [200,240,270,310], [220,250,280,330]] # good for series at -20C, 10e14
 
 # Loop through all timestamps
 for j, timestamp in enumerate(timestamps):
