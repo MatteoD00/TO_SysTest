@@ -1,0 +1,119 @@
+import os
+import re
+import ROOT
+#import mplhep as hep
+
+LOW_TEMP = False
+
+# Dose extraction from filename
+def extract_dose(input_string):
+    # Extract the filename from the path
+    filename = os.path.basename(input_string)
+    # Using regex to find the pattern of a number before and after 'E' or 'e'
+    match = re.search(r'(\d+)[eE](\d+)', filename)
+    
+    if match:
+        before_e = int(match.group(1))
+        after_e = int(match.group(2))
+        if after_e != 14:
+            print(f"The data was saved using a dose multiplier different than 10e14, please check it. Datafile: {input_string}")
+        return before_e
+    else:
+        return None  # In case there's no match
+
+# Finding ROOT files in directories
+def find_root_files_in_directories():
+    root_files = []
+    current_dir = os.getcwd()
+
+    for dirpath, dirnames, filenames in os.walk(current_dir):
+        if dirpath != current_dir:
+            for file in filenames:
+                if file.endswith(".root"):
+                    full_path = os.path.join(dirpath, file)
+                    root_files.append(full_path)
+
+    return root_files
+
+# Main part of the script
+if __name__ == "__main__":
+    root_files = find_root_files_in_directories()
+
+    # Initialize a dictionary to store data by file
+    file_data = {}
+
+    if not root_files:
+        print("No ROOT files found in the subdirectories.")
+    else:
+        print(f"Found {len(root_files)} ROOT files.")
+
+    for i, file_name in enumerate(root_files):
+        #print(f"Processing file: {file_name}")
+
+        # Initialize data storage for each file
+        file_data[file_name] = {
+            "dose": extract_dose(file_name),
+            "temperature": 22 if "roomT" in file_name else -20,
+            "light": "on" if "lighton" in file_name else "off",
+            "charge": [],
+            "width": [],
+            "HM_left": [],
+            "sigma_left": [],
+            "sigma_right": [],
+            "timestamp": [],
+            "voltage": [],
+            "current": []
+        }
+
+        file = ROOT.TFile(file_name)
+        tree = file.Get("qinj_results")
+
+        if not tree:
+            print(f"Tree 'qinj_results' not found in {file_name}")
+            continue 
+
+        for entry in tree:
+            # Append data to the lists within the dictionary for this file
+            file_data[file_name]["charge"].append(entry.charge)
+            file_data[file_name]["width"].append(entry.width)
+            file_data[file_name]["HM_left"].append(entry.HM_left)
+            file_data[file_name]["sigma_left"].append(entry.sigma_left)
+            file_data[file_name]["sigma_right"].append(entry.sigma_right)
+            file_data[file_name]["timestamp"].append(entry.timestamp)
+            file_data[file_name]["voltage"].append(entry.voltage)
+            file_data[file_name]["current"].append(entry.current)
+
+        file.Close()   
+
+    import matplotlib.pyplot as plt
+
+    if LOW_TEMP:
+        filtered_data = {fname: data for fname, data in file_data.items() if data["temperature"] < 0}
+        # Example plot for current vs charge from filtered data
+        plt.figure()
+        i = 0
+        for file_name, data in filtered_data.items():
+            i += 1
+            plt.scatter(data["current"], data["HM_left"], label=fr"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$")
+            plt.xlabel("Current (uA)")
+            plt.ylabel("x_left (A.U.)")
+        handles, labels = plt.gca().get_legend_handles_labels()
+        order = [1,2,0,3]
+        plt.title(f"Current vs Charge for data acquired at -20C")
+        plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
+        plt.show()
+    else:
+        filtered_data = {fname: data for fname, data in file_data.items() if data["temperature"] > 0}
+        plt.figure()
+        i = 0
+        for file_name, data in filtered_data.items():
+            i += 1
+            plt.scatter(data["current"], data["HM_left"], label="light on" if "lighton" in file_name else "light off")
+            plt.xlabel("Current (uA)")
+            plt.ylabel("x_left (A.U.)")
+        #handles, labels = plt.gca().get_legend_handles_labels()
+        #order = [1,2,0,3]
+        #plt.title(f"Current vs Charge for data acquired at -20C")
+        #plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
+        plt.legend(title="Light status")
+        plt.show()
