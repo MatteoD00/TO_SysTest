@@ -50,6 +50,8 @@ dir_path = "../../Systest/data_from_systest_pc/outputs/"
 path_results_qinj = "../../Systest/data_from_systest_pc/results/" + str(module_id) + "/"
 
 outdir = "2x2UFSD4_W17_T9_RT_unirr_lighton/"
+if not os.path.isdir(outdir):
+    os.mkdir(outdir)
 
 # Find corresponding voltage, temperature, and pixel information
 # Assumes the user is smart enought to provide timestamps of the same series
