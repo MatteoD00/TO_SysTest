@@ -50,6 +50,8 @@ if module_id == 43:
     outdir = "2x2UFSD4_W17_T9_-20C_unirr/"
 else:
     outdir = "2x2UFSD4_W17_T9_-20C_6e14/"
+if not os.path.isdir(outdir[:-1]):
+    os.mkdir(outdir[:-1])
     
 # Find corresponding voltage, temperature, and pixel information
 # Assumes the user is smart enought to provide timestamps of the same series
