@@ -4,6 +4,7 @@ import ROOT
 #import mplhep as hep
 
 LOW_TEMP = False
+ALL = True
 
 # Dose extraction from filename
 def extract_dose(input_string):
@@ -86,34 +87,50 @@ if __name__ == "__main__":
         file.Close()   
 
     import matplotlib.pyplot as plt
-
-    if LOW_TEMP:
-        filtered_data = {fname: data for fname, data in file_data.items() if data["temperature"] < 0}
-        # Example plot for current vs charge from filtered data
-        plt.figure()
-        i = 0
+    plt.figure()
+    
+    if ALL:
+        filtered_data = file_data
         for file_name, data in filtered_data.items():
             i += 1
-            plt.scatter(data["current"], data["HM_left"], label=fr"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$")
+            plt.scatter(data["current"], data["HM_left"], label=f"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$ - {data['temperature']}C - {data['light']}")
             plt.xlabel("Current (uA)")
             plt.ylabel("x_left (A.U.)")
         handles, labels = plt.gca().get_legend_handles_labels()
         order = [1,2,0,3]
-        plt.title(f"Current vs Charge for data acquired at -20C")
-        plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
+        plt.title(f"Signal Vth position (HM_left) for all sensors")
+        plt.legend(title="Dose - Temperature - Light")
         plt.show()
     else:
-        filtered_data = {fname: data for fname, data in file_data.items() if data["temperature"] > 0}
-        plt.figure()
-        i = 0
-        for file_name, data in filtered_data.items():
-            i += 1
-            plt.scatter(data["current"], data["HM_left"], label="light on" if "lighton" in file_name else "light off")
-            plt.xlabel("Current (uA)")
-            plt.ylabel("x_left (A.U.)")
-        #handles, labels = plt.gca().get_legend_handles_labels()
-        #order = [1,2,0,3]
-        #plt.title(f"Current vs Charge for data acquired at -20C")
-        #plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
-        plt.legend(title="Light status")
-        plt.show()
+        if LOW_TEMP:
+            filtered_data = {fname: data for fname, data in file_data.items() if data["temperature"] < 0}
+
+            plt.figure()
+            i = 0
+            for file_name, data in filtered_data.items():
+                i += 1
+                plt.scatter(data["current"], data["HM_left"], label=fr"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$")
+                plt.xlabel("Current (uA)")
+                plt.ylabel("x_left (A.U.)")
+            handles, labels = plt.gca().get_legend_handles_labels()
+            order = [1,2,0,3]
+            plt.title(f"Signal Vth position (HM left) for irradiated sensors data \n Acquired at -20C")
+            plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
+            plt.show()
+        else:
+            filtered_data = {fname: data for fname, data in file_data.items() if data["temperature"] > 0}
+            plt.figure()
+            i = 0
+            for file_name, data in filtered_data.items():
+                i += 1
+                plt.scatter(data["current"], data["HM_left"], label="light on" if "lighton" in file_name else "light off")
+                plt.xlabel("Current (uA)")
+                plt.ylabel("x_left (A.U.)")
+            #handles, labels = plt.gca().get_legend_handles_labels()
+            #order = [1,2,0,3]
+            #plt.title(f"Current vs Charge for data acquired at -20C")
+            #plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
+            plt.title("Signal Vth position (HM left) for unirradiated sensors \n Acquired at +22 C")
+            plt.legend(title="Light status")
+            plt.show()
+    
