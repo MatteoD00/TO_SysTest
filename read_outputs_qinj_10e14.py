@@ -43,8 +43,9 @@ fit_options = "QR+"
 current_10e14_negtemp = [0,4.,4.,4.7,7.1,9.7,9.8,15.3,27.3]
 current = current_10e14_negtemp
 
-dir_path = "/home/teststandws/module_test_sw_Sept2024/module_test_sw/outputs/"
-path_results_qinj = "/home/teststandws/module_test_sw_Sept2024/module_test_sw/results/" + str(module_id) + "/"
+
+dir_path = "../../Systest/data_from_systest_pc/outputs/"
+path_results_qinj = "../../Systest/data_from_systest_pc/results/" + str(module_id) + "/"
 
 if module_id == 43:
     outdir = "2x2UFSD4_W17_T9_-20C_15E14/"
