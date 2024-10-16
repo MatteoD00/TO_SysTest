@@ -71,6 +71,7 @@ if not os.path.isdir("ToA_ToT"):
 for timestamp in timestamps:
     fig1, (histToA, histToT) = plt.subplots(2,4,figsize=(16,9),dpi=300)
     fig2, (ToA_mean,ToT_mean) = plt.subplots(1,2,figsize=(16,9),dpi=300)
+    fig3, ax = plt.subplots(2,2,figsize=(16,9),dpi=300)
     voltage, temperature, pixel, fluence = find_info(respath, timestamp)
     for j, charge in enumerate(charges):
         file = f"Qinj_scan_ETROC_0_L1A_501_{charge}.json"
@@ -103,15 +104,24 @@ for timestamp in timestamps:
         ToT_mean.plot(vth_tmean,mean_t,color=colors[j],label=charge)
         ToT_mean.set_xlabel("Vth")
         ToT_mean.set_ylabel("ToT_mean")
+
+        ax[j//2,j%2].hist2d(tot_flat,toa_flat,bins=(100,100),range=None,cmap='YlOrRd')
+        ax[j//2,j%2].set_xlabel('ToT')
+        ax[j//2,j%2].set_ylabel('ToA')
+        ax.set_title(f"Charge: {charge}fC")
     ToA_mean.legend()
     ToT_mean.legend()
     title = f"{timestamp} \n Pixel:{pixel} Bias:{voltage} Temp:{temperature} Fluence:{fluence}"
     fig1.suptitle(title)
     fig2.suptitle(title)
+    fig3.suptitle(title)
     if not voltage:
         voltage = "?"
     if not fluence:
         fluence = "0e14"
+    if not os.path.isdir(f"ToA_ToT/FBK_{fluence}"):
+        os.mkdir(f"ToA_ToT/FBK_{fluence}")
     fig1.savefig(f"ToA_ToT/{timestamp}_mod{module}_bias{voltage}_f{fluence}_hist2d.png",dpi=300)
     fig2.savefig(f"ToA_ToT/{timestamp}_mod{module}_bias{voltage}_f{fluence}_mean.png",dpi=300)
+    fig3.savefig(f"ToA_ToT/{timestamp}_mod{module}_bias{voltage}_f{fluence}_ToAvsToT.png",dpi=300)
     
