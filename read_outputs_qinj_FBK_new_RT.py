@@ -40,10 +40,10 @@ fit_options = "QR+"
 currents = [2.01,1.02,0.6,0.34,0.15,0.07,0.05,0.035,0.02,0]
 current = currents
 
-dir_path = "../from_systest_pc/outputs/"
-path_results_qinj = "../from_systest_pc/results/" + str(module_id) + "/"
+dir_path = "../../Systest/data_from_systest_pc/outputs/"
+path_results_qinj = "../../Systest/data_from_systest_pc/results/" + str(module_id) + "/"
 
-outdir = "2x2UFSD4_W17_T9_RT_unirr/"
+outdir = "2x2UFSD4_W17_T9_RT_unirr_lightoff/"
 if not os.path.isdir(outdir):
     os.mkdir(outdir)
 
@@ -57,7 +57,7 @@ for dir in all_dirs_there:
 # Create the output ROOT file
 if temperature == None:
     temperature = "roomT"
-outfilename = f"{outdir}results_mod{str(module_id)}_{pixel}_{dose}_{temperature}.root"
+outfilename = f"{outdir}results_mod{str(module_id)}_{pixel}_{dose}_{temperature}_lightoff.root"
 outFile = ROOT.TFile.Open(outfilename, 'RECREATE')
 tree = ROOT.TTree("qinj_results", "qinj_results")
 
@@ -69,8 +69,8 @@ t_sigma_left = np.zeros(1, dtype=float)
 t_sigma_right = np.zeros(1, dtype=float)
 t_timestamp = np.zeros(1, dtype=float)
 t_bias = np.zeros(1, dtype=int)
-if len(current) != 1:
-    t_current = np.zeros(1, dtype=int)
+if len(current) > 1:
+    t_current = np.zeros(1, dtype=float)
     tree.Branch("current", t_current, "current/D")
 
 # Define branches

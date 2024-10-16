@@ -40,7 +40,7 @@ ROOT.gErrorIgnoreLevel = 3000  #sets the ignore level to "Warning" instead of "I
 # Module ID and list of timestamps to process
 module_id = 21
 timestamps = ["2024-09-19-15-59-16","2024-09-19-15-54-25","2024-09-19-15-50-13","2024-09-19-15-45-23","2024-09-19-15-40-10"] # good for series module 43, new, room T, lightson
-currents = [1.5,0.9,0.67,0.02,0]
+currents = [1.5,0.9,0.67,0.02,0.]
 
 dose = "0E14"
 fit_options = "QR+"
@@ -59,11 +59,11 @@ all_dirs_there = [entry for entry in os.listdir(path_results_qinj) if os.path.is
 for dir in all_dirs_there:
     if timestamps[0] in dir:
         voltage, temperature, pixel = extract_info(dir.replace(timestamps[0], ""))
-
+pixel = "15-3"
 # Create the output ROOT file
 if temperature == None:
     temperature = "roomT"
-outfilename = f"{outdir}results_mod{str(module_id)}_{pixel}_{dose}_{temperature}.root"
+outfilename = f"{outdir}results_mod{str(module_id)}_{pixel}_{dose}_{temperature}_lightoff.root"
 outFile = ROOT.TFile.Open(outfilename, 'RECREATE')
 tree = ROOT.TTree("qinj_results", "qinj_results")
 
@@ -75,8 +75,8 @@ t_sigma_left = np.zeros(1, dtype=float)
 t_sigma_right = np.zeros(1, dtype=float)
 t_timestamp = np.zeros(1, dtype=float)
 t_bias = np.zeros(1, dtype=int)
-if len(current) != 1:
-    t_current = np.zeros(1, dtype=int)
+if len(current) > 1:
+    t_current = np.zeros(1, dtype=float)
     tree.Branch("current", t_current, "current/D")
 
 # Define branches
@@ -192,6 +192,7 @@ for j, timestamp in enumerate(timestamps):
         t_bias[0] = int(voltage.replace("V",""))
         if len(current) > 1:
             t_current[0] = current[j]
+            print(f"saving current {current[j]}")
         tree.Fill()
 
     # Draw the multigraph
