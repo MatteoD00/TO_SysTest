@@ -88,19 +88,37 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
     plt.figure()
+    y_plot = "width" #"width" #"HM_left"
+    x_plot = "current"  #"current"
+    
+    Title_x_axis = ""
+    if x_plot == "current":
+        Title_x_axis = "Current (uA)"
+    if x_plot == "charge":
+        Title_x_axis = "Charge (fC)"
+
+    Title_y_axis = ""
+    if y_plot == "width":
+        Title_y_axis = "width (A.U.)"
+    if y_plot == "HM_left":
+        Title_y_axis = "x_left (A.U.)"
+    if y_plot == "current":
+        Title_y_axis = "Current uA"
     
     if ALL:
         filtered_data = file_data
         for file_name, data in filtered_data.items():
             i += 1
-            plt.scatter(data["current"], data["HM_left"], label=f"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$ - {data['temperature']}C - {data['light']}")
-            plt.xlabel("Current (uA)")
-            plt.ylabel("x_left (A.U.)")
-        handles, labels = plt.gca().get_legend_handles_labels()
-        order = [1,2,0,3]
-        plt.title(f"Signal Vth position (HM_left) for all sensors")
+            plt.scatter(data[x_plot], data[y_plot], label=f"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$ - {data['temperature']}C - {data['light']}")
+            plt.xlabel(Title_x_axis)
+            plt.ylabel(Title_y_axis)
+        if y_plot == "width":
+            plt.title(f"Width for all sensors")
+        if y_plot == "HM_left":
+            plt.title(f"Signal Vth position (HM left) for all sensors")
         plt.legend(title="Dose - Temperature - Light")
         plt.show()
+
     else:
         if LOW_TEMP:
             filtered_data = {fname: data for fname, data in file_data.items() if data["temperature"] < 0}
@@ -109,12 +127,15 @@ if __name__ == "__main__":
             i = 0
             for file_name, data in filtered_data.items():
                 i += 1
-                plt.scatter(data["current"], data["HM_left"], label=fr"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$")
-                plt.xlabel("Current (uA)")
-                plt.ylabel("x_left (A.U.)")
+                plt.scatter(data[x_plot], data[y_plot], label=fr"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$")
+                plt.xlabel(Title_x_axis)
+                plt.ylabel(Title_y_axis)
             handles, labels = plt.gca().get_legend_handles_labels()
             order = [1,2,0,3]
-            plt.title(f"Signal Vth position (HM left) for irradiated sensors data \n Acquired at -20C")
+            if y_plot == "HM_left":
+                plt.title(f"Signal Vth position (HM left) for irradiated sensors data \n Acquired at -20C")
+            if y_plot == "width":
+                plt.title(f"Width for irradiated sensors data \n Acquired at -20C")
             plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
             plt.show()
         else:
@@ -123,14 +144,17 @@ if __name__ == "__main__":
             i = 0
             for file_name, data in filtered_data.items():
                 i += 1
-                plt.scatter(data["current"], data["HM_left"], label="light on" if "lighton" in file_name else "light off")
-                plt.xlabel("Current (uA)")
-                plt.ylabel("x_left (A.U.)")
+                plt.scatter(data[x_plot], data[y_plot], label="light on" if "lighton" in file_name else "light off")
+                plt.xlabel(Title_x_axis)
+                plt.ylabel(Title_y_axis)
             #handles, labels = plt.gca().get_legend_handles_labels()
             #order = [1,2,0,3]
             #plt.title(f"Current vs Charge for data acquired at -20C")
             #plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
-            plt.title("Signal Vth position (HM left) for unirradiated sensors \n Acquired at +22 C")
+            if y_plot == "HM_left":
+                plt.title(f"Signal Vth position (HM left) for unirradiated sensors data \n Acquired at -22C")
+            if y_plot == "width":
+                plt.title(f"Width for unirradiated sensors data \n Acquired at +22C")
             plt.legend(title="Light status")
             plt.show()
     
