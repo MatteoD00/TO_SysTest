@@ -1,0 +1,9 @@
+# Run all of the raw data analysis at once
+python3 read_outputs_qinj_6e14.py
+python3 read_outputs_qinj_10e14.py
+python3 read_outputs_qinj_15e14.py
+python3 read_outputs_qinj_FBK_new_RT.py
+python3 read_outputs_qinj_FBK_new_RT_lightson.py
+python3 read_outputs_qinj_HPK_unirr_RT.py
+#python3 read_outputs_qinj_unirr.py
+
