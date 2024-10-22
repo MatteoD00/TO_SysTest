@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import math
 import statistics
 
+#Evaluate mean and std dev of ToA or ToT at each value of Vth
 def eval_list(data, datavth):
     mean = []
     devstd = []
@@ -28,6 +29,20 @@ def eval_list(data, datavth):
             devstd.append(0)
             vth.append(datavth[i])"""
     return mean, devstd, vth, l
+
+# Finding ROOT files in directories
+def find_root_files_in_directories():
+    root_files = []
+    current_dir = os.getcwd()
+
+    for dirpath, dirnames, filenames in os.walk(current_dir):
+        if dirpath != current_dir:
+            for file in filenames:
+                if file.endswith(".root"):
+                    full_path = os.path.join(dirpath, file)
+                    root_files.append(full_path)
+
+    return root_files
 
 def extract_info(s: str):
     voltage_match = search(r'(\d+V)', s)
@@ -55,11 +70,11 @@ colors = ['green','blue','red','black']
 charges = [5,15,20,30]
 
 #Uncomment the timestamps for the sensor you want to analyse and select correct readout module
-timestamps = ["2024-10-10-18-09-56","2024-10-10-18-17-57","2024-10-10-17-57-44","2024-10-10-16-16-17","2024-10-10-16-00-51","2024-10-10-15-43-55","2024-10-10-15-23-42","2024-10-10-15-00-22"]  # FBK 10e14 - module 21
+#timestamps = ["2024-10-10-18-09-56","2024-10-10-18-17-57","2024-10-10-17-57-44","2024-10-10-16-16-17","2024-10-10-16-00-51","2024-10-10-15-43-55","2024-10-10-15-23-42","2024-10-10-15-00-22"]  # FBK 10e14 - module 21
 #timestamps = ["2024-10-01-15-36-16","2024-10-01-15-45-50","2024-10-01-16-03-51","2024-10-01-16-13-50","2024-10-01-16-23-04","2024-10-01-16-37-34","2024-10-01-17-09-52"]    #FBK 6e14 - module21
 #timestamps = ["2024-10-11-10-08-23","2024-10-11-10-26-15","2024-10-11-10-34-44","2024-10-11-10-48-25","2024-10-11-11-04-02","2024-10-11-11-15-51","2024-10-11-11-27-32","2024-10-11-11-38-40","2024-10-11-11-49-17","2024-10-11-12-00-52"]   # FBK 15e14 - module 43
-#timestamps = ["2024-09-24-13-59-35","2024-09-24-13-37-58","2024-09-24-13-30-25","2024-09-24-13-19-01","2024-09-24-12-48-32","2024-09-24-12-33-41","2024-09-24-12-25-41","2024-09-24-11-48-32","2024-09-24-11-40-27","2024-09-24-11-26-18"] # FBK unirr - module 43
-module = 21
+timestamps = ["2024-09-24-13-59-35","2024-09-24-13-37-58","2024-09-24-13-30-25","2024-09-24-13-19-01","2024-09-24-12-48-32","2024-09-24-12-33-41","2024-09-24-12-25-41","2024-09-24-11-48-32","2024-09-24-11-40-27","2024-09-24-11-26-18"] # FBK unirr - module 43
+module = 43
 dirpath = f"/home/teststandws/module_test_sw_Sept2024/module_test_sw/outputs/{module}/"
 respath = dirpath.replace("outputs","results")
 
@@ -86,11 +101,11 @@ for timestamp in timestamps:
         vth_t = np.repeat(datavth, [len(sublist) for sublist in datatoa])
         mean_a, std_a, vth_amean, list_a = eval_list(datatoa, datavth)
         mean_t, std_t, vth_tmean, list_t = eval_list(datatot, datavth)
-        if j == 0:
+        if charge == 5:
             endpoint = 800
         else:
-            endpoint = 500
-        histToA[j].hist2d(vth_a,toa_flat,bins=(100,100),range=(None,(200,endpoint)),cmap='YlOrRd')
+            endpoint = 450
+        histToA[j].hist2d(vth_a,toa_flat,bins=(100,100),range=(None,(0,800)),cmap='YlOrRd')
         histToA[j].set_xlabel("Vth")
         histToA[j].set_ylabel("ToA")
         histToA[j].set_title(f"Charge: {charge}fC")
@@ -105,10 +120,10 @@ for timestamp in timestamps:
         ToT_mean.set_xlabel("Vth")
         ToT_mean.set_ylabel("ToT_mean")
 
-        ax[j//2,j%2].hist2d(tot_flat,toa_flat,bins=(100,100),range=None,cmap='YlOrRd')
+        ax[j//2,j%2].hist2d(tot_flat,toa_flat,bins=(100,100),range=((0,250),(150,endpoint)),cmap='YlOrRd')
         ax[j//2,j%2].set_xlabel('ToT')
         ax[j//2,j%2].set_ylabel('ToA')
-        ax.set_title(f"Charge: {charge}fC")
+        ax[j//2,j%2].set_title(f"Charge: {charge}fC")
     ToA_mean.legend()
     ToT_mean.legend()
     title = f"{timestamp} \n Pixel:{pixel} Bias:{voltage} Temp:{temperature} Fluence:{fluence}"
@@ -121,7 +136,11 @@ for timestamp in timestamps:
         fluence = "0e14"
     if not os.path.isdir(f"ToA_ToT/FBK_{fluence}"):
         os.mkdir(f"ToA_ToT/FBK_{fluence}")
-    fig1.savefig(f"ToA_ToT/{timestamp}_mod{module}_bias{voltage}_f{fluence}_hist2d.png",dpi=300)
-    fig2.savefig(f"ToA_ToT/{timestamp}_mod{module}_bias{voltage}_f{fluence}_mean.png",dpi=300)
-    fig3.savefig(f"ToA_ToT/{timestamp}_mod{module}_bias{voltage}_f{fluence}_ToAvsToT.png",dpi=300)
-    
+    fig1.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_hist2d.png",dpi=300)
+    plt.close(fig1)
+    fig2.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_mean.png",dpi=300)
+    plt.close(fig2)
+    fig3.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_ToAvsToT.png",dpi=300)
+    plt.close(fig3)
+
+print(f"Saved all the images in FBK_{fluence}...")

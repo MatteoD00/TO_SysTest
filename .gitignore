@@ -170,3 +170,5 @@ cython_debug/
 2x2UFSD4_W17_T9_RT_unirr_lighton/*
 read_outputs_qinj_10e14_ToAToT.py
 read_outputs_qinj_HPK_unirr_RT_ToAToT.py
+module_test/*
+.uploadimageToAToT
