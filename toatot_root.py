@@ -56,7 +56,7 @@ def extract_info(s: str):
     pixel = pixel_match.group(1) if pixel_match else None
 
     fluence_match = search(r'(\d+e\d+)', s)
-    fluence = fluence_match.group(0) if fluence_match else None
+    fluence = fluence_match.group(0) if fluence_match else '0e14'
 
     return voltage, temperature, pixel, fluence
 
@@ -71,6 +71,7 @@ def find_info(respath, timestamp):
 
 # Main part of the script
 if __name__ == "__main__":
+    ROOT.gStyle.SetOptStat(0)
     root_files = find_root_files_in_directories()
 
     # Initialize a dictionary to store data by file
@@ -112,15 +113,15 @@ if __name__ == "__main__":
     charges = [5,15,20,30]
 
     #Uncomment the timestamps for the sensor you want to analyse and select correct readout module
-    timestamps = ["2024-10-10-18-09-56","2024-10-10-18-17-57","2024-10-10-17-57-44","2024-10-10-16-16-17","2024-10-10-16-00-51","2024-10-10-15-43-55","2024-10-10-15-23-42","2024-10-10-15-00-22"]  # FBK 10e14 - module 21
+    #timestamps = ["2024-10-10-18-09-56","2024-10-10-18-17-57","2024-10-10-17-57-44","2024-10-10-16-16-17","2024-10-10-16-00-51","2024-10-10-15-43-55","2024-10-10-15-23-42","2024-10-10-15-00-22"]  # FBK 10e14 - module 21
     #timestamps = ["2024-10-01-15-36-16","2024-10-01-15-45-50","2024-10-01-16-03-51","2024-10-01-16-13-50","2024-10-01-16-23-04","2024-10-01-16-37-34","2024-10-01-17-09-52"]    #FBK 6e14 - module21
     #timestamps = ["2024-10-11-10-08-23","2024-10-11-10-26-15","2024-10-11-10-34-44","2024-10-11-10-48-25","2024-10-11-11-04-02","2024-10-11-11-15-51","2024-10-11-11-27-32","2024-10-11-11-38-40","2024-10-11-11-49-17","2024-10-11-12-00-52"]   # FBK 15e14 - module 43
-    #timestamps = ["2024-09-24-13-59-35","2024-09-24-13-37-58","2024-09-24-13-30-25","2024-09-24-13-19-01","2024-09-24-12-48-32","2024-09-24-12-33-41","2024-09-24-12-25-41","2024-09-24-11-48-32","2024-09-24-11-40-27","2024-09-24-11-26-18"] # FBK unirr - module 43
+    timestamps = ["2024-09-24-13-59-35","2024-09-24-13-37-58","2024-09-24-13-30-25","2024-09-24-13-19-01","2024-09-24-12-48-32","2024-09-24-12-33-41","2024-09-24-12-25-41","2024-09-24-11-48-32","2024-09-24-11-40-27","2024-09-24-11-26-18"] # FBK unirr - module 43
     timecode = [datetime.timestamp(datetime.strptime(timestamp,"%Y-%m-%d-%H-%M-%S")) for timestamp in timestamps]
-    module = 21
+    module = 43
     dirpath = f"./module_test/outputs/{module}/"
     respath = dirpath.replace("outputs","results")
-    timestamps.sort()
+    timecode.sort()
     data = []
     counts = []
     bins = []
@@ -129,7 +130,7 @@ if __name__ == "__main__":
     for time_i, timestamp in enumerate(timestamps):
         rootdata = []
         for file_name, dataitem in file_data.items():
-            if abs(dataitem['timestamp'][0] - timecode[time_i]) < 10:
+            if timecode[time_i] in dataitem['timestamp']:
                 rootdata = list(zip(*dataitem.values()))
         #fig1, (histToA, histToT) = plt.subplots(2,4,figsize=(16,9),dpi=300)
         canv1 = ROOT.TCanvas('canv1','canv1',2000,1000)
@@ -139,7 +140,7 @@ if __name__ == "__main__":
         canv3 = ROOT.TCanvas('canv3','canv3',1400,1050)
         canv3.Divide(2,2)
         voltage, temperature, pixel, fluence = find_info(respath, timestamp)
-        rootfile = ROOT.TFile(f'ToA_ToT/FBK_{fluence}/{timecode[time_i]}_{voltage}.root','RECREATE')
+        rootfile = ROOT.TFile(f'ToA_ToT/FBK_{fluence}/{timestamp}_{voltage}.root','RECREATE')
         hist_toa_vth = []
         hist_tot_vth = []
         hist_toa_tot = []
@@ -151,7 +152,7 @@ if __name__ == "__main__":
             width = 0
             HM_left = 0
             for elements in rootdata:
-                if elements[0] == charge:
+                if elements[0] == charge and elements[3] == timecode[time_i]:
                     width = elements[1]
                     HM_left = elements[2] 
             file = f"Qinj_scan_ETROC_0_L1A_501_{charge}.json"
@@ -171,7 +172,7 @@ if __name__ == "__main__":
             else:
                 endpoint = 450
             canv1.cd(j+1)
-            hist_toa_vth.append(ROOT.TH2F(f'toa_vth_{charge}',f'Charge: {charge}fC',100,np.min(vth_a),np.max(vth_a),100,np.min(toa_flat),max(np.max(toa_flat),800)))
+            hist_toa_vth.append(ROOT.TH2F(f'toa_vth_{charge}',f'Charge: {charge}fC',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
             for iter in range(len(vth_a)):
                 hist_toa_vth[j].Fill(vth_a[iter],toa_flat[iter])
             hist_toa_vth[j].GetXaxis().SetTitle('Vth (a.u.)')
@@ -179,19 +180,27 @@ if __name__ == "__main__":
             hist_toa_vth[j].Draw('COLZ')
             lineLeftA.append(ROOT.TLine(HM_left,np.min(toa_flat),HM_left,max(np.max(toa_flat),800)))
             lineWidthA.append(ROOT.TLine(HM_left+width,np.min(toa_flat),HM_left+width,max(np.max(toa_flat),800)))
-            lineLeftA[j].Draw()
-            lineWidthA[j].Draw()
+            lineLeftA[j].SetLineWidth(2)
+            lineLeftA[j].SetLineColor(ROOT.kGreen)
+            lineLeftA[j].Draw('same')
+            lineWidthA[j].SetLineWidth(2)
+            lineWidthA[j].SetLineColor(ROOT.kRed)
+            lineWidthA[j].Draw('same')
             canv1.cd(j+5)
-            hist_tot_vth.append(ROOT.TH2F(f'tot_vth_{charge}',f'Charge: {charge}fC',100,np.min(vth_t),np.max(vth_t),100,np.min(tot_flat),max(np.max(tot_flat),250)))
+            hist_tot_vth.append(ROOT.TH2F(f'tot_vth_{charge}',f'Charge: {charge}fC',100,min(np.min(vth_t),HM_left-20),max(np.max(vth_t),HM_left+width+20),100,np.min(tot_flat),max(np.max(tot_flat),250)))
             for iter in range(len(vth_t)):
                 hist_tot_vth[j].Fill(vth_t[iter],tot_flat[iter])
             hist_tot_vth[j].GetXaxis().SetTitle('Vth (a.u.)')
             hist_tot_vth[j].GetYaxis().SetTitle('ToT (a.u.)')
             hist_tot_vth[j].Draw('COLZ')
             lineLeftT.append(ROOT.TLine(HM_left,np.min(tot_flat),HM_left,max(np.max(tot_flat),250)))
-            lineWidthT.append(ROOT.TLine(HM_left+width,np.min(tot_flat),HM_left+width,max(np.max(tot_flat),800)))
-            lineLeftT[j].Draw()
-            lineWidthT[j].Draw()
+            lineWidthT.append(ROOT.TLine(HM_left+width,np.min(tot_flat),HM_left+width,max(np.max(tot_flat),250)))
+            lineLeftT[j].SetLineWidth(2)
+            lineLeftT[j].SetLineColor(ROOT.kGreen)
+            lineLeftT[j].Draw('same')
+            lineWidthT[j].SetLineWidth(2)
+            lineWidthT[j].SetLineColor(ROOT.kRed)
+            lineWidthT[j].Draw('same')
             canv1.Update()
             ToA_mean.plot(vth_amean,mean_a,color=colors[charge],label=charge)
             ToA_mean.set_xlabel("Vth")
