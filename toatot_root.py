@@ -113,13 +113,13 @@ if __name__ == "__main__":
     charges = [5,15,20,30]
 
     #Uncomment the timestamps for the sensor you want to analyse and select correct readout module
-    #timestamps = ["2024-10-10-18-09-56","2024-10-10-18-17-57","2024-10-10-17-57-44","2024-10-10-16-16-17","2024-10-10-16-00-51","2024-10-10-15-43-55","2024-10-10-15-23-42","2024-10-10-15-00-22"]  # FBK 10e14 - module 21
+    timestamps = ["2024-10-10-15-00-22","2024-10-10-15-23-42","2024-10-10-15-43-55","2024-10-10-16-00-51","2024-10-10-16-16-17","2024-10-10-17-57-44","2024-10-10-18-09-56"]  # FBK 10e14 - module 21
     #timestamps = ["2024-10-01-15-36-16","2024-10-01-15-45-50","2024-10-01-16-03-51","2024-10-01-16-13-50","2024-10-01-16-23-04","2024-10-01-16-37-34","2024-10-01-17-09-52"]    #FBK 6e14 - module21
     #timestamps = ["2024-10-11-10-08-23","2024-10-11-10-26-15","2024-10-11-10-34-44","2024-10-11-10-48-25","2024-10-11-11-04-02","2024-10-11-11-15-51","2024-10-11-11-27-32","2024-10-11-11-38-40","2024-10-11-11-49-17","2024-10-11-12-00-52"]   # FBK 15e14 - module 43
-    timestamps = ["2024-09-24-13-59-35","2024-09-24-13-37-58","2024-09-24-13-30-25","2024-09-24-13-19-01","2024-09-24-12-48-32","2024-09-24-12-33-41","2024-09-24-12-25-41","2024-09-24-11-48-32","2024-09-24-11-40-27","2024-09-24-11-26-18"] # FBK unirr - module 43
+    #timestamps = ["2024-10-01-11-55-39","2024-10-01-12-07-27","2024-10-01-12-16-44","2024-10-01-12-28-02","2024-10-01-12-37-39", "2024-10-01-12-48-40", "2024-10-01-13-00-17"] # FBK unirr - module 43
     timecode = [datetime.timestamp(datetime.strptime(timestamp,"%Y-%m-%d-%H-%M-%S")) for timestamp in timestamps]
-    module = 43
-    dirpath = f"./module_test/outputs/{module}/"
+    module = 21
+    dirpath = f"/home/teststandws/module_test_sw_Sept2024/module_test_sw/outputs/{module}/"
     respath = dirpath.replace("outputs","results")
     timecode.sort()
     data = []
@@ -132,11 +132,9 @@ if __name__ == "__main__":
         for file_name, dataitem in file_data.items():
             if timecode[time_i] in dataitem['timestamp']:
                 rootdata = list(zip(*dataitem.values()))
-        #fig1, (histToA, histToT) = plt.subplots(2,4,figsize=(16,9),dpi=300)
         canv1 = ROOT.TCanvas('canv1','canv1',2000,1000)
         canv1.Divide(4,2)
         fig2, (ToA_mean,ToT_mean) = plt.subplots(1,2,figsize=(16,9),dpi=300)
-        #fig3, ax = plt.subplots(2,2,figsize=(16,9),dpi=300)
         canv3 = ROOT.TCanvas('canv3','canv3',1400,1050)
         canv3.Divide(2,2)
         voltage, temperature, pixel, fluence = find_info(respath, timestamp)
@@ -219,9 +217,7 @@ if __name__ == "__main__":
         ToA_mean.legend()
         ToT_mean.legend()
         title = f"{timestamp} \n Pixel:{pixel} Bias:{voltage} Temp:{temperature} Fluence:{fluence}"
-        #fig1.suptitle(title)
         fig2.suptitle(title)
-        #fig3.suptitle(title)
         if not voltage:
             voltage = "?"
         if not fluence:
@@ -229,12 +225,8 @@ if __name__ == "__main__":
         if not os.path.isdir(f"ToA_ToT/FBK_{fluence}"):
             os.mkdir(f"ToA_ToT/FBK_{fluence}")
         canv1.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_hist2d.png")
-        #fig1.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_hist2d.png",dpi=300)
-        #plt.close(fig1)
         fig2.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_mean.png",dpi=300)
         plt.close(fig2)
-        #fig3.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_ToAvsToT.png",dpi=300)
-        #plt.close(fig3)
         canv3.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_ToAvsToT.png")
         canv1.Close()
         canv3.Close()
