@@ -93,7 +93,7 @@ if __name__ == "__main__":
             if charge == 30 and testdraw:
                 canvas2 = ROOT.TCanvas('c2')
                 hist2d.DrawCopy()
-                canvas2.SaveAs(f'test{i}.png')
+                canvas2.SaveAs(f'{path}hist_{filename}_cleaned.png')
             profile = hist2d.ProfileX(f"toa_tot_{charge}_prof")
             profile.GetYaxis().SetTitle("ToA mean (a.u.)")
             if testdraw:
