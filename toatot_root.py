@@ -24,10 +24,6 @@ def eval_list(data, datavth):
                 l.append(item)
                 std += ((item-mean[-1])**2)/len(sublist)
             devstd.append(math.sqrt(std))
-        """else:
-            mean.append(0)
-            devstd.append(0)
-            vth.append(datavth[i])"""
     return mean, devstd, vth, l
 
 # Finding ROOT files in directories
@@ -114,7 +110,7 @@ if __name__ == "__main__":
 
     #Uncomment the timestamps for the sensor you want to analyse and select correct readout module
     timestamps = ["2024-10-10-15-00-22","2024-10-10-15-23-42","2024-10-10-15-43-55","2024-10-10-16-00-51","2024-10-10-16-16-17","2024-10-10-17-57-44","2024-10-10-18-09-56"]  # FBK 10e14 - module 21
-    #timestamps = ["2024-10-01-15-36-16","2024-10-01-15-45-50","2024-10-01-16-03-51","2024-10-01-16-13-50","2024-10-01-16-23-04","2024-10-01-16-37-34","2024-10-01-17-09-52"]    #FBK 6e14 - module21
+    #timestamps = ["2024-10-01-17-09-52","2024-10-01-15-36-16","2024-10-01-15-45-50","2024-10-01-16-03-51","2024-10-01-16-13-50","2024-10-01-16-23-04","2024-10-01-16-37-34"]    #FBK 6e14 - module21
     #timestamps = ["2024-10-11-10-08-23","2024-10-11-10-26-15","2024-10-11-10-34-44","2024-10-11-10-48-25","2024-10-11-11-04-02","2024-10-11-11-15-51","2024-10-11-11-27-32","2024-10-11-11-38-40","2024-10-11-11-49-17","2024-10-11-12-00-52"]   # FBK 15e14 - module 43
     #timestamps = ["2024-10-01-11-55-39","2024-10-01-12-07-27","2024-10-01-12-16-44","2024-10-01-12-28-02","2024-10-01-12-37-39", "2024-10-01-12-48-40", "2024-10-01-13-00-17"] # FBK unirr - module 43
     timecode = [datetime.timestamp(datetime.strptime(timestamp,"%Y-%m-%d-%H-%M-%S")) for timestamp in timestamps]
