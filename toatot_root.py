@@ -149,7 +149,7 @@ if __name__ == "__main__":
         canv3 = ROOT.TCanvas('canv3','canv3',1400,1050)
         canv3.Divide(2,2)
         voltage, temperature, pixel, fluence = find_info(respath, timestamp)
-        rootfile = ROOT.TFile(f'ToA_ToT/FBK_{fluence}/{timestamp}_{voltage}.root','RECREATE')
+        rootfile = ROOT.TFile(f'ToA_ToT/FBK_{fluence}/{timestamp}_{voltage}.root','UPDATE')
         hist_toa_vth = []
         hist_tot_vth = []
         hist_toa_tot = []
@@ -186,7 +186,7 @@ if __name__ == "__main__":
                 endpoint = 450
             # Fill 2D histograms for ToX vs Vth
             canv1.cd(j+1)
-            hist_toa_vth.append(ROOT.TH2F(f'toa_vth_{charge}',f'Charge: {charge}fC\t {'Corrected' if correct_bool else ''}',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
+            hist_toa_vth.append(ROOT.TH2F(f"toa_vth_{charge}{'_Corrected' if correct_bool else ''}",f'Charge: {charge}fC\t {'Corrected' if correct_bool else ''}',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
             for iter in range(len(vth_a)):
                 if correct_bool:
                     hist_toa_vth[j].Fill(vth_a[iter],toa_flat_corr[iter])                
@@ -195,6 +195,7 @@ if __name__ == "__main__":
             hist_toa_vth[j].GetXaxis().SetTitle('Vth (a.u.)')
             hist_toa_vth[j].GetYaxis().SetTitle('ToA (a.u.)')
             hist_toa_vth[j].Draw('COLZ')
+            hist_toa_vth[j].Write(f"toa_vth_{charge}{'_Corrected' if correct_bool else ''}",ROOT.TObject.kOverwrite)
             lineLeftA.append(ROOT.TLine(HM_left,np.min(toa_flat),HM_left,max(np.max(toa_flat),800)))
             lineWidthA.append(ROOT.TLine(HM_left+width,np.min(toa_flat),HM_left+width,max(np.max(toa_flat),800)))
             lineLeftA[j].SetLineWidth(2)
@@ -210,6 +211,7 @@ if __name__ == "__main__":
             hist_tot_vth[j].GetXaxis().SetTitle('Vth (a.u.)')
             hist_tot_vth[j].GetYaxis().SetTitle('ToT (a.u.)')
             hist_tot_vth[j].Draw('COLZ')
+            hist_tot_vth[j].Write(f'tot_vth_{charge}',ROOT.TObject.kOverwrite)
             lineLeftT.append(ROOT.TLine(HM_left,np.min(tot_flat),HM_left,max(np.max(tot_flat),250)))
             lineWidthT.append(ROOT.TLine(HM_left+width,np.min(tot_flat),HM_left+width,max(np.max(tot_flat),250)))
             lineLeftT[j].SetLineWidth(2)
@@ -234,6 +236,7 @@ if __name__ == "__main__":
             hist_toa_tot[j].GetXaxis().SetTitle('ToT (a.u)')
             hist_toa_tot[j].GetYaxis().SetTitle('ToA (a.u)')
             hist_toa_tot[j].Draw('COLZ')
+            hist_toa_tot[j].Write(f'toa_tot_{charge}',ROOT.TObject.kOverwrite)
             canv3.Update()
         ToA_mean.legend()
         ToT_mean.legend()
@@ -252,7 +255,6 @@ if __name__ == "__main__":
         canv3.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_ToAvsToT.png")
         canv1.Close()
         canv3.Close()
-        rootfile.Write()
         rootfile.Close()
 
     print(f"Saved all the images in FBK_{fluence}...")
