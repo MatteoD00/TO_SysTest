@@ -64,11 +64,24 @@ def find_info(respath, timestamp):
             voltage, temperature, pixel, fluence = extract_info(dir.replace(timestamp,""))
             return voltage, temperature, pixel, fluence
 
+# Make plots applying ToA correction for different ToT values
+def correct_toa(toa_flat: np.array, tot_flat: np.array, vth_a: np.array, vth_t: np.array, timestamp: str, fluence: str, voltage: str, charge: int):
+    with open(f'ToA_ToT/FBK_{fluence}/fit_{timestamp}_{voltage}.json','r') as jfile:
+        data = json.load(jfile)
+    parname = data[str(charge)]['parname']
+    parval = data[str(charge)]['parval']
+    parerr = data[str(charge)]['parerr']
+    toa_flat_corr = []
+    for iter in range(len(toa_flat)):
+        toa_flat_corr.append(toa_flat[iter] - parval[1]*tot_flat[iter] - parval[2]*tot_flat[iter]*tot_flat[iter])
+    return toa_flat_corr
 
 # Main part of the script
 if __name__ == "__main__":
     ROOT.gStyle.SetOptStat(0)
     root_files = find_root_files_in_directories()
+    # Decide wether to apply time walk correction or not
+    correct_bool = False
 
     # Initialize a dictionary to store data by file
     file_data = {}
@@ -115,7 +128,7 @@ if __name__ == "__main__":
     #timestamps = ["2024-10-01-11-55-39","2024-10-01-12-07-27","2024-10-01-12-16-44","2024-10-01-12-28-02","2024-10-01-12-37-39", "2024-10-01-12-48-40", "2024-10-01-13-00-17"] # FBK unirr - module 43
     timecode = [datetime.timestamp(datetime.strptime(timestamp,"%Y-%m-%d-%H-%M-%S")) for timestamp in timestamps]
     module = 21
-    dirpath = f"/home/teststandws/module_test_sw_Sept2024/module_test_sw/outputs/{module}/"
+    dirpath = f"./module_test/outputs/{module}/"
     respath = dirpath.replace("outputs","results")
     timecode.sort()
     data = []
@@ -165,15 +178,20 @@ if __name__ == "__main__":
             vth_t = np.repeat(datavth, [len(sublist) for sublist in datatoa])
             mean_a, std_a, vth_amean, list_a = eval_list(datatoa, datavth)
             mean_t, std_t, vth_tmean, list_t = eval_list(datatot, datavth)
+            if correct_bool:
+                toa_flat_corr = correct_toa(toa_flat,tot_flat,vth_a,vth_t,timestamp,fluence,voltage,charge)
             if charge == 5:
                 endpoint = 800
             else:
                 endpoint = 450
             # Fill 2D histograms for ToX vs Vth
             canv1.cd(j+1)
-            hist_toa_vth.append(ROOT.TH2F(f'toa_vth_{charge}',f'Charge: {charge}fC',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
+            hist_toa_vth.append(ROOT.TH2F(f'toa_vth_{charge}',f'Charge: {charge}fC\t {'Corrected' if correct_bool else ''}',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
             for iter in range(len(vth_a)):
-                hist_toa_vth[j].Fill(vth_a[iter],toa_flat[iter])
+                if correct_bool:
+                    hist_toa_vth[j].Fill(vth_a[iter],toa_flat_corr[iter])                
+                else:
+                    hist_toa_vth[j].Fill(vth_a[iter],toa_flat[iter])
             hist_toa_vth[j].GetXaxis().SetTitle('Vth (a.u.)')
             hist_toa_vth[j].GetYaxis().SetTitle('ToA (a.u.)')
             hist_toa_vth[j].Draw('COLZ')
@@ -228,7 +246,7 @@ if __name__ == "__main__":
         # Save figures
         if not os.path.isdir(f"ToA_ToT/FBK_{fluence}"):
             os.mkdir(f"ToA_ToT/FBK_{fluence}")
-        canv1.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_hist2d.png")
+        canv1.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}{'_corrected' if correct_bool else ''}_hist2d.png")
         fig2.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_mean.png",dpi=300)
         plt.close(fig2)
         canv3.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_ToAvsToT.png")
