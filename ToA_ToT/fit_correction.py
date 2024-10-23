@@ -84,10 +84,16 @@ if __name__ == "__main__":
         roottemp = ROOT.TFile(file,"UPDATE")
         path = file.replace(filename,'')
         filename = filename.replace('.root','')
-        txtout = open(f'{path}fit_{filename}.txt','w')
+        jdict = {}
         for charge in charges:
+            jdict[charge] = {
+                'parname': [],
+                'parval': [],
+                'parerr': [],
+                'Chi2': 0,
+                'NDF': 0,
+            }
             # Get 2D histogram ToA vs ToT
-            txtout.write(f'#### Results for charge = {charge} ####\n')
             canvas  = ROOT.TCanvas('c1')
             canvas.cd()
             histname = f"toa_tot_{charge}"
@@ -110,31 +116,29 @@ if __name__ == "__main__":
             fit_result = profile.Fit(fitfunc,'RS')
             # Save fit results
             try:
-                for iter in range(fit_result.NPar()):
-                    parname = fit_result.GetParameterName(iter)
-                    parval = fit_result.Parameter(iter)
-                    parerr = fit_result.ParError(iter)
-                    txtout.write(f'Parameter {parname} = {parval:.3f} +- {parerr:.3f}\n')
-                txtout.write('\nCovariance Matrix:\n')
-                for iter1 in range(fit_result.NPar()):
-                    for iter2 in range(fit_result.NPar()):
-                        covelem = fit_result.CovMatrix(iter1,iter2)
-                        txtout.write(f'{covelem:.3f}\t')
-                    txtout.write('\n')
-                chi2 = fit_result.Chi2()
-                ndf = fit_result.Ndf()
-                txtout.write(f'Chi2: {chi2:.3f}\tNDF: {ndf}\t\tChi2/NDF: {chi2/ndf:.3f}\n')
+                npar = fit_result.NPar()
+                for iter in range(npar):
+                    jdict[charge]['parname'].append(fit_result.GetParameterName(iter))
+                    jdict[charge]['parval'].append(fit_result.Parameter(iter))
+                    jdict[charge]['parerr'].append(fit_result.ParError(iter))
+                jdict[charge]['Chi2'] = fit_result.Chi2()
+                jdict[charge]['NDF'] = fit_result.Ndf()
                 fit_result.Write(f"toa_tot_{charge}_fit", ROOT.TObject.kOverwrite)
             except:
                 print("Cannot save fit results")
-                txtout.write("Cannot save fit results")
+                for iter in range(3):
+                    jdict[charge]['parname'].append(0)
+                    jdict[charge]['parval'].append(0)
+                    jdict[charge]['parerr'].append(0)
+                jdict[charge]['Chi2'] = 0
+                jdict[charge]['NDF'] = 0
+
             # Save profile plot with fit
             profile.Write(f"toa_tot_{charge}_prof", ROOT.TObject.kOverwrite)
             canvas.Close()
-            txtout.write('\n\n\n')
-        
         roottemp.Close()
-        txtout.close()
+        with open(f'{path}fit_{filename}.json','w') as json_file:
+            json.dump(jdict, json_file, indent=4)
 
     print('End of fitting ToA-ToT histograms')
     end_time = time.time()
