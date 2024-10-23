@@ -25,6 +25,7 @@ def find_root_files_in_directories():
 
     return root_files
 
+# Find minimum on X axis
 def get_minval(profile: ROOT.TH1, x_low: float, x_high: float):
     bin_low = profile.GetXaxis().FindBin(x_low)
     bin_high = profile.GetXaxis().FindBin(x_high)
@@ -40,6 +41,7 @@ def get_minval(profile: ROOT.TH1, x_low: float, x_high: float):
     minval = profile.GetXaxis().GetBinLowEdge(min_bin)
     return minval
 
+# Delete noise bins
 def clean_hist(hist2d: ROOT.TH2, module: int):
     #threshold = 2.
     x_bins = hist2d.GetNbinsX()
@@ -60,10 +62,9 @@ if __name__ == "__main__":
     start_time = time.time()
     testdraw = False
     ROOT.gStyle.SetOptStat(0)
-    root_files = find_root_files_in_directories()
-
     charges = [5,15,20,30]
-
+    # Extract list of ROOT files
+    root_files = find_root_files_in_directories()
     if not root_files:
         print("No ROOT files found in the subdirectories.")
         sys.exit(1)
@@ -71,6 +72,7 @@ if __name__ == "__main__":
         print(f"Found {len(root_files)} ROOT files.")
 
     for i, file in enumerate(root_files):
+        # Extract info and ROOT file
         filename = os.path.basename(file)
         print('\n'+('#'*70))
         print(f'Open file {filename}')
@@ -84,27 +86,29 @@ if __name__ == "__main__":
         filename = filename.replace('.root','')
         txtout = open(f'{path}fit_{filename}.txt','w')
         for charge in charges:
+            # Get 2D histogram ToA vs ToT
             txtout.write(f'#### Results for charge = {charge} ####\n')
             canvas  = ROOT.TCanvas('c1')
             canvas.cd()
             histname = f"toa_tot_{charge}"
             hist2d = roottemp.Get(histname)
+            # Clear histogram from noise hits
             clean_hist(hist2d, module)
             if charge == 30 and testdraw:
                 canvas2 = ROOT.TCanvas('c2')
                 hist2d.DrawCopy()
                 canvas2.SaveAs(f'{path}hist_{filename}_cleaned.png')
+            # Extract 1D profile
             profile = hist2d.ProfileX(f"toa_tot_{charge}_prof")
             profile.GetYaxis().SetTitle("ToA mean (a.u.)")
             if testdraw:
                 profile.Draw()
-            lowedges = []
-            for iter in range(1,profile.GetNbinsX()+1):
-                lowedges.append(profile.GetXaxis().GetBinLowEdge(iter))
+            # Fit function from minimum
             minval = get_minval(profile,0.,160.)
             print(f"Profile '{profile.GetName()}' saved to the ROOT file")
             fitfunc = ROOT.TF1(f'fitfunc_{charge}','[a0]+[a1]*x+[a2]*pow(x,2)',minval,160.)
             fit_result = profile.Fit(fitfunc,'RS')
+            # Save fit results
             try:
                 for iter in range(fit_result.NPar()):
                     parname = fit_result.GetParameterName(iter)
@@ -124,6 +128,7 @@ if __name__ == "__main__":
             except:
                 print("Cannot save fit results")
                 txtout.write("Cannot save fit results")
+            # Save profile plot with fit
             profile.Write(f"toa_tot_{charge}_prof", ROOT.TObject.kOverwrite)
             canvas.Close()
             txtout.write('\n\n\n')

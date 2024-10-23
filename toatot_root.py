@@ -125,9 +125,11 @@ if __name__ == "__main__":
         os.mkdir("ToA_ToT")
     for time_i, timestamp in enumerate(timestamps):
         rootdata = []
+        # Extract data from rootfiles and select the file with the current timestamp
         for file_name, dataitem in file_data.items():
             if timecode[time_i] in dataitem['timestamp']:
                 rootdata = list(zip(*dataitem.values()))
+        # Prepare canvas and lists for analysis
         canv1 = ROOT.TCanvas('canv1','canv1',2000,1000)
         canv1.Divide(4,2)
         fig2, (ToA_mean,ToT_mean) = plt.subplots(1,2,figsize=(16,9),dpi=300)
@@ -145,10 +147,12 @@ if __name__ == "__main__":
         for j, charge in enumerate(charges):
             width = 0
             HM_left = 0
+            # Extract width and HM_left to draw lines
             for elements in rootdata:
                 if elements[0] == charge and elements[3] == timecode[time_i]:
                     width = elements[1]
                     HM_left = elements[2] 
+            # Read data from JSON file and manipulate into NUMPY arrays
             file = f"Qinj_scan_ETROC_0_L1A_501_{charge}.json"
             with open(dirpath+timestamp+'/'+file, 'r') as f:
                 data = json.load(f)
@@ -165,6 +169,7 @@ if __name__ == "__main__":
                 endpoint = 800
             else:
                 endpoint = 450
+            # Fill 2D histograms for ToX vs Vth
             canv1.cd(j+1)
             hist_toa_vth.append(ROOT.TH2F(f'toa_vth_{charge}',f'Charge: {charge}fC',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
             for iter in range(len(vth_a)):
@@ -196,14 +201,16 @@ if __name__ == "__main__":
             lineWidthT[j].SetLineColor(ROOT.kRed)
             lineWidthT[j].Draw('same')
             canv1.Update()
-            ToA_mean.plot(vth_amean,mean_a,color=colors[charge],label=charge)
+            # Plot the average of ToX for any given Vth
+            ToA_mean.plot(vth_amean,mean_a,color=colors[charge],label=f'{charge} fC')
             ToA_mean.set_xlabel("Vth")
             ToA_mean.set_ylabel("ToA_mean")
-            ToT_mean.plot(vth_tmean,mean_t,color=colors[charge],label=charge)
+            ToT_mean.plot(vth_tmean,mean_t,color=colors[charge],label=f'{charge} fC')
             ToT_mean.set_xlabel("Vth")
             ToT_mean.set_ylabel("ToT_mean")
+            # Fill 2D histograms for ToA vs ToT
             canv3.cd(j+1)
-            hist_toa_tot.append(ROOT.TH2F(f'toa_tot_{charge}',f'Charge: {charge}',100,(np.min(tot_flat)),max(np.max(tot_flat),250),100,np.min(toa_flat),max(np.max(toa_flat),endpoint)))
+            hist_toa_tot.append(ROOT.TH2F(f'toa_tot_{charge}',f'Charge: {charge}fC',100,(np.min(tot_flat)),max(np.max(tot_flat),250),100,np.min(toa_flat),max(np.max(toa_flat),endpoint)))
             for iter in range(len(tot_flat)):
                 hist_toa_tot[j].Fill(tot_flat[iter],toa_flat[iter])
             hist_toa_tot[j].GetXaxis().SetTitle('ToT (a.u)')
@@ -218,6 +225,7 @@ if __name__ == "__main__":
             voltage = "?"
         if not fluence:
             fluence = "0e14"
+        # Save figures
         if not os.path.isdir(f"ToA_ToT/FBK_{fluence}"):
             os.mkdir(f"ToA_ToT/FBK_{fluence}")
         canv1.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_hist2d.png")
