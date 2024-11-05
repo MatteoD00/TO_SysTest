@@ -86,6 +86,27 @@ if __name__ == "__main__":
     sens = 'FBK_0e14'
     # Initialize a dictionary to store data by file
     file_data = {}
+    outdict = {
+        'voltages': [],
+        5: {
+            'means': [],
+            'sigmas': []
+        },
+        15: {
+            'means': [],
+            'sigmas': []
+        },
+        20: {
+            'means': [],
+            'sigmas': []
+        },
+        30: {
+            'means': [],
+            'sigmas': []
+        }
+    }
+    if not os.path.isdir(f'ToA_ToT/{sens}'):
+        os.mkdir(f'ToA_ToT/{sens}')
 
     if not root_files:
         print("No ROOT files found in the subdirectories.")
@@ -151,8 +172,6 @@ if __name__ == "__main__":
     data = []
     counts = []
     bins = []
-    if not os.path.isdir("ToA_ToT"):
-        os.mkdir("ToA_ToT")
     for time_i, timestamp in enumerate(timestamps):
         rootdata = []
         # Extract data from rootfiles and select the file with the current timestamp
@@ -168,15 +187,15 @@ if __name__ == "__main__":
         canv4 = ROOT.TCanvas('canv4','canv4',1400,1050)
         canv4.Divide(2,2)
         voltage, temperature, pixel, fluence = find_info(respath, timestamp)
+        outdict['voltages'].append(voltage)
         rootfile = ROOT.TFile(f'ToA_ToT/FBK_{fluence}/{timestamp}_{voltage}.root','UPDATE')
         hist_toa_vth = []
         hist_tot_vth = []
-        hist_toa_tot = []
+        #hist_toa_tot = []
         lineLeftA = []
         lineWidthA = []
         lineLeftT = []
         lineWidthT = []
-        toa_distr = []
         for j, charge in enumerate(charges):
             width = 0
             HM_left = 0
@@ -206,7 +225,7 @@ if __name__ == "__main__":
                 endpoint = 450
             # Fill 2D histograms for ToX vs Vth
             canv1.cd(j+1)
-            hist_toa_vth.append(ROOT.TH2F(f"toa_vth_{charge}{'_Corrected' if correct_bool else ''}",f'Charge: {charge}fC\t {'Corrected' if correct_bool else ''}',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
+            hist_toa_vth.append(ROOT.TH2D(f"toa_vth_{charge}{'_Corrected' if correct_bool else ''}",f'Charge: {charge}fC\t {'Corrected' if correct_bool else ''}',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
             for iter in range(len(vth_a)):
                 if correct_bool:
                     hist_toa_vth[j].Fill(vth_a[iter],toa_flat_corr[iter])                
@@ -225,7 +244,7 @@ if __name__ == "__main__":
             lineWidthA[j].SetLineColor(ROOT.kRed)
             lineWidthA[j].Draw('same')
             canv1.cd(j+5)
-            hist_tot_vth.append(ROOT.TH2F(f'tot_vth_{charge}',f'Charge: {charge}fC',100,min(np.min(vth_t),HM_left-20),max(np.max(vth_t),HM_left+width+20),100,np.min(tot_flat),max(np.max(tot_flat),250)))
+            hist_tot_vth.append(ROOT.TH2D(f'tot_vth_{charge}',f'Charge: {charge}fC',100,min(np.min(vth_t),HM_left-20),max(np.max(vth_t),HM_left+width+20),100,np.min(tot_flat),max(np.max(tot_flat),250)))
             for iter in range(len(vth_t)):
                 hist_tot_vth[j].Fill(vth_t[iter],tot_flat[iter])
             hist_tot_vth[j].GetXaxis().SetTitle('Vth (a.u.)')
@@ -250,26 +269,38 @@ if __name__ == "__main__":
             ToT_mean.set_ylabel("ToT_mean")
             # Fill 2D histograms for ToA vs ToT
             canv3.cd(j+1)
-            hist_toa_tot.append(ROOT.TH2F(f'toa_tot_{charge}',f'Charge: {charge}fC',100,(np.min(tot_flat)),max(np.max(tot_flat),250),100,np.min(toa_flat),max(np.max(toa_flat),endpoint)))
+            hist_toa_tot = ROOT.TH2D(f'toa_tot_{charge}',f'Charge: {charge}fC',100,(np.min(tot_flat)),max(np.max(tot_flat),250),100,np.min(toa_flat),max(np.max(toa_flat),endpoint))
             for iter in range(len(tot_flat)):
-                hist_toa_tot[j].Fill(tot_flat[iter],toa_flat[iter])
-            hist_toa_tot[j].GetXaxis().SetTitle('ToT (a.u)')
-            hist_toa_tot[j].GetYaxis().SetTitle('ToA (a.u)')
-            hist_toa_tot[j].Draw('COLZ')
-            hist_toa_tot[j].Write(f'toa_tot_{charge}',ROOT.TObject.kOverwrite)
+                hist_toa_tot.Fill(tot_flat[iter],toa_flat[iter])
+            hist_toa_tot.GetXaxis().SetTitle('ToT (a.u)')
+            hist_toa_tot.GetYaxis().SetTitle('ToA (a.u)')
+            hist_toa_tot.DrawCopy('COLZ')
+            hist_toa_tot.Write(f'toa_tot_{charge}',ROOT.TObject.kOverwrite)
             canv3.Update()
             if correct_bool:
                 # Fill 1D histograms to measure distribution of ToA after correction (time res??)
+                try:
+                    rootfile.Delete(f'toa_distrib_{charge}')
+                except:
+                    print('\n\nError deleting histogram\n\n')
                 canv4.cd(j+1)
-                toa_distr.append(ROOT.TH1F(f'toa_distrib_{charge}',f'Charge: {charge}fC\t Corrected',100,np.min(toa_flat_corr),np.max(toa_flat_corr)))
-                for value in toa_flat_corr:
-                    toa_distr[j].Fill(value)
-                toa_distr[j].Draw()
-                fitfunc = ROOT.TF1(f'gaus_toa_{charge}','gaus(0)',100.,250. if module==43 else 300)
-                fit_result = toa_distr[j].Fit(fitfunc,'RS')
-                toa_distr[j].Write(f'toa_distrib_{charge}',ROOT.TObject.kOverwrite)
-                fit_result.Write(f'fit_c{charge}',ROOT.TObject.kOverwrite)
-
+                firstproj = int(hist_toa_vth[j].GetXaxis().FindBin(HM_left))
+                lastproj = int(hist_toa_vth[j].GetXaxis().FindBin(HM_left+width))
+                toatemp = hist_toa_vth[j].ProjectionY(f'toa_distrib_{charge}', firstproj, lastproj)
+                toatemp.DrawCopy()
+                fitfunc = ROOT.TF1(f'gaus_toa_{charge}','gaus(0)',100.,250. if module==43 else 350.)
+                fit_result = toatemp.Fit(fitfunc,'RS')
+                try:
+                    outdict[charge]['means'].append(fit_result.Parameter(1))
+                    outdict[charge]['sigmas'].append(fit_result.Parameter(2))
+                    fit_result.Write(f'fit_c{charge}',ROOT.TObject.kOverwrite)
+                except:
+                    print(f'Error saving fit results for {fluence}_{voltage}_{charge}')
+                    outdict[charge]['means'].append(0.)
+                    outdict[charge]['sigmas'].append(0.)
+                toatemp.Write(f'toa_distrib_{charge}',ROOT.TObject.kOverwrite)
+                
+        
         ToA_mean.legend()
         ToT_mean.legend()
         title = f"{timestamp} \n Pixel:{pixel} Bias:{voltage} Temp:{temperature} Fluence:{fluence}"
@@ -279,8 +310,6 @@ if __name__ == "__main__":
         if not fluence:
             fluence = "0e14"
         # Save figures
-        if not os.path.isdir(f"ToA_ToT/FBK_{fluence}"):
-            os.mkdir(f"ToA_ToT/FBK_{fluence}")
         canv1.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}{'_corrected' if correct_bool else ''}_hist2d.png")
         fig2.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_mean.png",dpi=300)
         plt.close(fig2)
@@ -288,6 +317,9 @@ if __name__ == "__main__":
         canv4.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_DistribToA.png")
         canv1.Close()
         canv3.Close()
+        canv4.Close()
         rootfile.Close()
-
+    if correct_bool:
+        with open(f'ToA_ToT/{sens}/fit_results.json','w') as jsonout:
+            json.dump(outdict, jsonout, indent=4)
     print(f"Saved all the images in FBK_{fluence}...")
