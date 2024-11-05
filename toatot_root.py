@@ -81,8 +81,9 @@ if __name__ == "__main__":
     ROOT.gStyle.SetOptStat(0)
     root_files = find_root_files_in_directories()
     # Decide wether to apply time walk correction or not
-    correct_bool = False
-
+    correct_bool = True
+    # Decide sensor to analyze between FBK_0e14/6e14/10e14/15e14
+    sens = 'FBK_0e14'
     # Initialize a dictionary to store data by file
     file_data = {}
 
@@ -121,13 +122,29 @@ if __name__ == "__main__":
     colors = {5:'green',15:'blue',20:'red',30:'black'}
     charges = [5,15,20,30]
 
-    #Uncomment the timestamps for the sensor you want to analyse and select correct readout module
-    timestamps = ["2024-10-10-15-00-22","2024-10-10-15-23-42","2024-10-10-15-43-55","2024-10-10-16-00-51","2024-10-10-16-16-17","2024-10-10-17-57-44","2024-10-10-18-09-56"]  # FBK 10e14 - module 21
-    #timestamps = ["2024-10-01-17-09-52","2024-10-01-15-36-16","2024-10-01-15-45-50","2024-10-01-16-03-51","2024-10-01-16-13-50","2024-10-01-16-23-04","2024-10-01-16-37-34"]    #FBK 6e14 - module21
-    #timestamps = ["2024-10-11-10-08-23","2024-10-11-10-26-15","2024-10-11-10-34-44","2024-10-11-10-48-25","2024-10-11-11-04-02","2024-10-11-11-15-51","2024-10-11-11-27-32","2024-10-11-11-38-40","2024-10-11-11-49-17","2024-10-11-12-00-52"]   # FBK 15e14 - module 43
-    #timestamps = ["2024-10-01-11-55-39","2024-10-01-12-07-27","2024-10-01-12-16-44","2024-10-01-12-28-02","2024-10-01-12-37-39", "2024-10-01-12-48-40", "2024-10-01-13-00-17"] # FBK unirr - module 43
+    # Choose sensor from dictionary to set correct timestamps and module
+    dictsens = {
+        'FBK_15e14': {
+            'timestamps': ["2024-10-11-10-08-23","2024-10-11-10-26-15","2024-10-11-10-34-44","2024-10-11-10-48-25","2024-10-11-11-04-02","2024-10-11-11-15-51","2024-10-11-11-27-32","2024-10-11-11-38-40","2024-10-11-11-49-17","2024-10-11-12-00-52"],
+            'module': 43
+        },
+        'FBK_10e14': {
+            'timestamps': ["2024-10-10-15-00-22","2024-10-10-15-23-42","2024-10-10-15-43-55","2024-10-10-16-00-51","2024-10-10-16-16-17","2024-10-10-17-57-44","2024-10-10-18-09-56"],
+            'module': 21
+        },
+        'FBK_6e14': {
+            'timestamps': ["2024-10-01-17-09-52","2024-10-01-15-36-16","2024-10-01-15-45-50","2024-10-01-16-03-51","2024-10-01-16-13-50","2024-10-01-16-23-04","2024-10-01-16-37-34"],
+            'module': 21
+        },
+        'FBK_0e14': {
+            'timestamps': ["2024-10-01-11-55-39","2024-10-01-12-07-27","2024-10-01-12-16-44","2024-10-01-12-28-02","2024-10-01-12-37-39", "2024-10-01-12-48-40", "2024-10-01-13-00-17"],
+            'module': 43
+        }
+    }
+    
+    timestamps = dictsens[sens]['timestamps']
     timecode = [datetime.timestamp(datetime.strptime(timestamp,"%Y-%m-%d-%H-%M-%S")) for timestamp in timestamps]
-    module = 21
+    module = dictsens[sens]['module']
     dirpath = f"./module_test/outputs/{module}/"
     respath = dirpath.replace("outputs","results")
     timecode.sort()
@@ -148,8 +165,10 @@ if __name__ == "__main__":
         fig2, (ToA_mean,ToT_mean) = plt.subplots(1,2,figsize=(16,9),dpi=300)
         canv3 = ROOT.TCanvas('canv3','canv3',1400,1050)
         canv3.Divide(2,2)
+        canv4 = ROOT.TCanvas('canv4','canv4',1400,1050)
+        canv4.Divide(2,2)
         voltage, temperature, pixel, fluence = find_info(respath, timestamp)
-        rootfile = ROOT.TFile(f'ToA_ToT/FBK_{fluence}/{timestamp}_{voltage}.root','RECREATE')
+        rootfile = ROOT.TFile(f'ToA_ToT/FBK_{fluence}/{timestamp}_{voltage}.root','UPDATE')
         hist_toa_vth = []
         hist_tot_vth = []
         hist_toa_tot = []
@@ -157,6 +176,7 @@ if __name__ == "__main__":
         lineWidthA = []
         lineLeftT = []
         lineWidthT = []
+        toa_distr = []
         for j, charge in enumerate(charges):
             width = 0
             HM_left = 0
@@ -186,7 +206,7 @@ if __name__ == "__main__":
                 endpoint = 450
             # Fill 2D histograms for ToX vs Vth
             canv1.cd(j+1)
-            hist_toa_vth.append(ROOT.TH2F(f'toa_vth_{charge}',f'Charge: {charge}fC\t {'Corrected' if correct_bool else ''}',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
+            hist_toa_vth.append(ROOT.TH2F(f"toa_vth_{charge}{'_Corrected' if correct_bool else ''}",f'Charge: {charge}fC\t {'Corrected' if correct_bool else ''}',100,min(np.min(vth_a),HM_left-20),max(np.max(vth_a),HM_left+width+20),100,np.min(toa_flat),max(np.max(toa_flat),800)))
             for iter in range(len(vth_a)):
                 if correct_bool:
                     hist_toa_vth[j].Fill(vth_a[iter],toa_flat_corr[iter])                
@@ -195,6 +215,7 @@ if __name__ == "__main__":
             hist_toa_vth[j].GetXaxis().SetTitle('Vth (a.u.)')
             hist_toa_vth[j].GetYaxis().SetTitle('ToA (a.u.)')
             hist_toa_vth[j].Draw('COLZ')
+            hist_toa_vth[j].Write(f"toa_vth_{charge}{'_Corrected' if correct_bool else ''}",ROOT.TObject.kOverwrite)
             lineLeftA.append(ROOT.TLine(HM_left,np.min(toa_flat),HM_left,max(np.max(toa_flat),800)))
             lineWidthA.append(ROOT.TLine(HM_left+width,np.min(toa_flat),HM_left+width,max(np.max(toa_flat),800)))
             lineLeftA[j].SetLineWidth(2)
@@ -210,6 +231,7 @@ if __name__ == "__main__":
             hist_tot_vth[j].GetXaxis().SetTitle('Vth (a.u.)')
             hist_tot_vth[j].GetYaxis().SetTitle('ToT (a.u.)')
             hist_tot_vth[j].Draw('COLZ')
+            hist_tot_vth[j].Write(f'tot_vth_{charge}',ROOT.TObject.kOverwrite)
             lineLeftT.append(ROOT.TLine(HM_left,np.min(tot_flat),HM_left,max(np.max(tot_flat),250)))
             lineWidthT.append(ROOT.TLine(HM_left+width,np.min(tot_flat),HM_left+width,max(np.max(tot_flat),250)))
             lineLeftT[j].SetLineWidth(2)
@@ -234,7 +256,20 @@ if __name__ == "__main__":
             hist_toa_tot[j].GetXaxis().SetTitle('ToT (a.u)')
             hist_toa_tot[j].GetYaxis().SetTitle('ToA (a.u)')
             hist_toa_tot[j].Draw('COLZ')
+            hist_toa_tot[j].Write(f'toa_tot_{charge}',ROOT.TObject.kOverwrite)
             canv3.Update()
+            if correct_bool:
+                # Fill 1D histograms to measure distribution of ToA after correction (time res??)
+                canv4.cd(j+1)
+                toa_distr.append(ROOT.TH1F(f'toa_distrib_{charge}',f'Charge: {charge}fC\t Corrected',100,np.min(toa_flat_corr),np.max(toa_flat_corr)))
+                for value in toa_flat_corr:
+                    toa_distr[j].Fill(value)
+                toa_distr[j].Draw()
+                fitfunc = ROOT.TF1(f'gaus_toa_{charge}','gaus(0)',100.,250. if module==43 else 300)
+                fit_result = toa_distr[j].Fit(fitfunc,'RS')
+                toa_distr[j].Write(f'toa_distrib_{charge}',ROOT.TObject.kOverwrite)
+                fit_result.Write(f'fit_c{charge}',ROOT.TObject.kOverwrite)
+
         ToA_mean.legend()
         ToT_mean.legend()
         title = f"{timestamp} \n Pixel:{pixel} Bias:{voltage} Temp:{temperature} Fluence:{fluence}"
@@ -250,9 +285,9 @@ if __name__ == "__main__":
         fig2.savefig(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_mean.png",dpi=300)
         plt.close(fig2)
         canv3.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_ToAvsToT.png")
+        canv4.SaveAs(f"ToA_ToT/FBK_{fluence}/{timestamp}_mod{module}_bias{voltage}_f{fluence}_DistribToA.png")
         canv1.Close()
         canv3.Close()
-        rootfile.Write()
         rootfile.Close()
 
     print(f"Saved all the images in FBK_{fluence}...")
