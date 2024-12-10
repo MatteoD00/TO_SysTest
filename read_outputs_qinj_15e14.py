@@ -43,8 +43,8 @@ fit_options = "QR+"
 current_15e14_negtemp = [0., 4.7, 6.3, 8.2, 8.7, 11.8, 16.5, 23.1, 33.5, 41.6]
 current = current_15e14_negtemp
 
-dir_path = "../../Systest/data_from_systest_pc/outputs/"
-path_results_qinj = "../../Systest/data_from_systest_pc/results/" + str(module_id) + "/"
+dir_path = "./module_test/outputs/"
+path_results_qinj = "./module_test/results/" + str(module_id) + "/"
 
 if module_id == 43:
     outdir = "2x2UFSD4_W17_T9_-20C_15E14/"

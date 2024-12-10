@@ -83,7 +83,7 @@ if __name__ == "__main__":
     # Decide wether to apply time walk correction or not
     correct_bool = True
     # Decide sensor to analyze between FBK_0e14/6e14/10e14/15e14
-    sens = 'FBK_0e14'
+    sens = 'FBK_10e14'
     # Initialize a dictionary to store data by file
     file_data = {}
     outdict = {
@@ -197,6 +197,7 @@ if __name__ == "__main__":
         lineLeftT = []
         lineWidthT = []
         for j, charge in enumerate(charges):
+            timebin = 1.    # Find correct value
             width = 0
             HM_left = 0
             # Extract width and HM_left to draw lines
@@ -208,8 +209,8 @@ if __name__ == "__main__":
             file = f"Qinj_scan_ETROC_0_L1A_501_{charge}.json"
             with open(dirpath+timestamp+'/'+file, 'r') as f:
                 data = json.load(f)
-            datatoa = data['toa']
-            datatot = data['tot']
+            datatoa = 12.5-timebin*data['toa']
+            datatot = ((2*data['tot'] - np.floor(data['tot']/32))*timebin)
             datavth = data['vth']
             toa_flat = np.array([item for sublist in datatoa for item in sublist])
             tot_flat = np.array([item for sublist in datatot for item in sublist])
@@ -259,7 +260,9 @@ if __name__ == "__main__":
             lineWidthT[j].SetLineWidth(2)
             lineWidthT[j].SetLineColor(ROOT.kRed)
             lineWidthT[j].Draw('same')
+            canv1.SetLogz()
             canv1.Update()
+            canv1.Draw()
             # Plot the average of ToX for any given Vth
             ToA_mean.plot(vth_amean,mean_a,color=colors[charge],label=f'{charge} fC')
             ToA_mean.set_xlabel("Vth")
@@ -276,7 +279,9 @@ if __name__ == "__main__":
             hist_toa_tot.GetYaxis().SetTitle('ToA (a.u)')
             hist_toa_tot.DrawCopy('COLZ')
             hist_toa_tot.Write(f'toa_tot_{charge}',ROOT.TObject.kOverwrite)
+            canv3.SetLogz()
             canv3.Update()
+            canv4.Draw()
             if correct_bool:
                 # Fill 1D histograms to measure distribution of ToA after correction (time res??)
                 try:
@@ -288,7 +293,8 @@ if __name__ == "__main__":
                 lastproj = int(hist_toa_vth[j].GetXaxis().FindBin(HM_left+width))
                 toatemp = hist_toa_vth[j].ProjectionY(f'toa_distrib_{charge}', firstproj, lastproj)
                 toatemp.DrawCopy()
-                fitfunc = ROOT.TF1(f'gaus_toa_{charge}','gaus(0)',100.,250. if module==43 else 350.)
+                endfit = 250. if module==43 else 400.
+                fitfunc = ROOT.TF1(f'gaus_toa_{charge}','gaus(0)',100.,endfit)
                 fit_result = toatemp.Fit(fitfunc,'RS')
                 try:
                     outdict[charge]['means'].append(fit_result.Parameter(1))

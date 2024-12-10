@@ -40,8 +40,8 @@ fit_options = "QR+"
 currents = [2.01,1.02,0.6,0.34,0.15,0.07,0.05,0.035,0.02,0]
 current = currents
 
-dir_path = "../../Systest/data_from_systest_pc/outputs/"
-path_results_qinj = "../../Systest/data_from_systest_pc/results/" + str(module_id) + "/"
+dir_path = "./module_test/outputs/"
+path_results_qinj = "./module_test/results/" + str(module_id) + "/"
 
 outdir = "2x2UFSD4_W17_T9_RT_unirr_lightoff/"
 if not os.path.isdir(outdir):

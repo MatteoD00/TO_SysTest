@@ -46,8 +46,8 @@ dose = "0E14"
 fit_options = "QR+"
 current = currents
 
-dir_path = "../../Systest/data_from_systest_pc/outputs/"
-path_results_qinj = "../../Systest/data_from_systest_pc/results/" + str(module_id) + "/"
+dir_path = "./module_test/outputs/"
+path_results_qinj = "./module_test/results/" + str(module_id) + "/"
 
 outdir = "2x2UFSD4_W17_T9_RT_unirr_lighton/"
 if not os.path.isdir(outdir):
