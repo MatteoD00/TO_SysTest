@@ -4,7 +4,7 @@ import ROOT
 #import mplhep as hep
 
 LOW_TEMP = False
-ALL = True
+ALL = False
 
 # Dose extraction from filename
 def extract_dose(input_string):
@@ -50,7 +50,8 @@ if __name__ == "__main__":
 
     for i, file_name in enumerate(root_files):
         #print(f"Processing file: {file_name}")
-
+        if 'HPK' in file_name:
+            continue
         # Initialize data storage for each file
         file_data[file_name] = {
             "dose": extract_dose(file_name),
@@ -89,7 +90,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     plt.figure()
     y_plot = "width" #"width" #"HM_left"
-    x_plot = "current"  #"current"
+    x_plot = "charge"  #"current" #"charge"
     
     Title_x_axis = ""
     if x_plot == "current":
@@ -128,15 +129,15 @@ if __name__ == "__main__":
             for file_name, data in filtered_data.items():
                 i += 1
                 plt.scatter(data[x_plot], data[y_plot], label=fr"{extract_dose(file_name)}e14 $n_{{eq}}/cm^2$")
-                plt.xlabel(Title_x_axis)
-                plt.ylabel(Title_y_axis)
+                plt.xlabel(Title_x_axis,fontsize='x-large')
+                plt.ylabel(Title_y_axis,fontsize='x-large')
             handles, labels = plt.gca().get_legend_handles_labels()
             order = [1,2,0,3]
             if y_plot == "HM_left":
-                plt.title(f"Signal Vth position (HM left) for irradiated sensors data \n Acquired at -20C")
+                plt.title(f"Signal Vth position (HM left) for irradiated sensors data \n Acquired at -20C",fontsize='x-large')
             if y_plot == "width":
                 plt.title(f"Width for irradiated sensors data \n Acquired at -20C")
-            plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
+            plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose",fontsize='x-large')
             plt.show()
         else:
             filtered_data = {fname: data for fname, data in file_data.items() if data["temperature"] > 0}
@@ -145,16 +146,16 @@ if __name__ == "__main__":
             for file_name, data in filtered_data.items():
                 i += 1
                 plt.scatter(data[x_plot], data[y_plot], label="light on" if "lighton" in file_name else "light off")
-                plt.xlabel(Title_x_axis)
-                plt.ylabel(Title_y_axis)
+                plt.xlabel(Title_x_axis,fontsize='x-large')
+                plt.ylabel(Title_y_axis,fontsize='x-large')
             #handles, labels = plt.gca().get_legend_handles_labels()
             #order = [1,2,0,3]
             #plt.title(f"Current vs Charge for data acquired at -20C")
             #plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
             if y_plot == "HM_left":
-                plt.title(f"Signal Vth position (HM left) for unirradiated sensors data \n Acquired at -22C")
+                plt.title(f"Signal Vth position (HM left) for unirradiated sensors data \n Acquired at -22C",fontsize='x-large')
             if y_plot == "width":
-                plt.title(f"Width for unirradiated sensors data \n Acquired at +22C")
-            plt.legend(title="Light status")
+                plt.title(f"Width for unirradiated sensors data \n Acquired at +22C",fontsize='x-large')
+            plt.legend(title="Light status",fontsize='x-large')
             plt.show()
     
