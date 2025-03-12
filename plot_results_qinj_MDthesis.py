@@ -2,6 +2,9 @@ import os
 import re
 import ROOT
 import argparse
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 #import mplhep as hep
 
 LOW_TEMP = False
@@ -39,12 +42,16 @@ def find_root_files_in_directories():
 
     return root_files
 
+def linear(x, m, q):
+    return x * m + q
+
 # Main part of the script
 if __name__ == "__main__":
     argParser = argparse.ArgumentParser(description='Argument parser')
     argParser.add_argument('--xvar',action='store',default=None,type=str,help='Define x variable to plot')
     argParser.add_argument('--yvar',action='store',default=None,type=str,help='Define y variable to plot')
     argParser.add_argument('--low_temp', action='store',default=None,type=int,help='Select RoomT or Cold measurements')
+    argParser.add_argument('--group_plot',action='store_true',default=False,help='Plot average and std values instead of scatter')
     args = argParser.parse_args()
     root_files = find_root_files_in_directories()
     if args.low_temp is not None:
@@ -52,6 +59,7 @@ if __name__ == "__main__":
     # Initialize a dictionary to store data by file
     file_data = {}
 
+    colors = ('blue','red','green','orange')
     if not root_files:
         print("No ROOT files found in the subdirectories.")
     else:
@@ -96,7 +104,6 @@ if __name__ == "__main__":
 
         file.Close()   
 
-    import matplotlib.pyplot as plt
     plt.figure(figsize=(11,8))
     
     y_plot = "HM_left" #"width" #"HM_left"
@@ -105,7 +112,7 @@ if __name__ == "__main__":
     x_plot = "current"  #"current" #"charge"
     if args.xvar in ['current','charge']:
         x_plot = args.xvar
-    
+
     
     Title_x_axis = ""
     if x_plot == "current":
@@ -146,17 +153,38 @@ if __name__ == "__main__":
             for file_name, data in filtered_data.items():
                 if  '_0E14' in file_name: #y_plot == 'width' and
                     continue
+                if not args.group_plot:
+                    plt.scatter(data[x_plot], data[y_plot], color=colors[i], label=fr"{extract_dose(file_name, True)}e14 $n_{{eq}}/cm^2$")
+                else:
+                    x_unique = np.unique(data[x_plot])
+                    y_mean = []
+                    y_std = []
+                    for x in x_unique:
+                        mask = np.array(data[x_plot]) == x
+                        if isinstance(mask, np.ndarray) and mask.dtype != bool:
+                            mask = mask.astype(bool)  # Force boolean type if needed
+                        y_arr = np.array(data[y_plot])[mask]
+                        if np.any(mask):
+                            y_mean.append(np.mean(y_arr))
+                            y_std.append(np.std(y_arr))
+                        else:
+                            y_mean.append(np.nan)
+                            y_std.append(np.nan)
+                    plt.errorbar(x_unique, y_mean, y_std, fmt='o', color=colors[i], label=fr"{extract_dose(file_name, True)}e14 $n_{{eq}}/cm^2$")
+                    p0 = [1,0]
+                    popt, pcov = curve_fit(linear,data[x_plot],data[y_plot],p0)
+                    x_curve = np.linspace(np.min(data[x_plot])-1,np.max(data[x_plot])+1,500)
+                    plt.plot(x_curve,linear(x_curve,popt[0],popt[1]),color = colors[i], linestyle = '--', label = fr"Fit {extract_dose(file_name, True)}e14 $n_{{eq}}/cm^2$")
                 i += 1
-                plt.scatter(data[x_plot], data[y_plot], label=fr"{extract_dose(file_name, True)}e14 $n_{{eq}}/cm^2$")
                 plt.xlabel(Title_x_axis,fontsize='x-large')
                 plt.ylabel(Title_y_axis,fontsize='x-large')
             handles, labels = plt.gca().get_legend_handles_labels()
             if y_plot == "HM_left":
-                plt.title(f"Signal Vth position (HM left) for irradiated sensors data \n Acquired at -20C",fontsize='x-large')
+                plt.title(f"Signal baseline (HM left) for irradiated sensors data \n Acquired at -20C",fontsize='x-large')
             if y_plot == "width":
                 plt.title(f"Width for irradiated sensors data \n Acquired at -20C")
             plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose",fontsize='x-large',loc='best')
-            plt.savefig(f'{os.getcwd()}/Plots_thesis/PostIrradiation/{y_plot}_{x_plot}_irr.png')
+            plt.savefig(f'{os.getcwd()}/Plots_thesis/PostIrradiation/{y_plot}_{x_plot}_irr{'_grouped' if args.group_plot else ''}.png')
             #plt.show()
             plt.close()
         else:
@@ -164,8 +192,29 @@ if __name__ == "__main__":
             plt.figure(figsize=(11,8))
             i = 0
             for file_name, data in filtered_data.items():
+                if not args.group_plot:
+                    plt.scatter(data[x_plot], data[y_plot], color=colors[i], label="light on" if "lighton" in file_name else "light off")
+                else:
+                    x_unique = np.unique(data[x_plot])
+                    y_mean = []
+                    y_std = []
+                    for x in x_unique:
+                        mask = np.array(data[x_plot]) == x
+                        if isinstance(mask, np.ndarray) and mask.dtype != bool:
+                            mask = mask.astype(bool)  # Force boolean type if needed
+                        y_arr = np.array(data[y_plot])[mask]
+                        if np.any(mask):
+                            y_mean.append(np.mean(y_arr))
+                            y_std.append(np.std(y_arr))
+                        else:
+                            y_mean.append(np.nan)
+                            y_std.append(np.nan)
+                    plt.errorbar(x_unique, y_mean, y_std, fmt='o', color=colors[i], label="light on" if "lighton" in file_name else "light off")
+                    p0 = [1,0]
+                    popt, pcov = curve_fit(linear,data[x_plot],data[y_plot],p0)
+                    x_curve = np.linspace(np.min(data[x_plot])-1,np.max(data[x_plot])+1,500)
+                    plt.plot(x_curve,linear(x_curve,popt[0],popt[1]),color = colors[i], linestyle = '--', label = "Fit light on" if "lighton" in file_name else "Fit light off")
                 i += 1
-                plt.scatter(data[x_plot], data[y_plot], label="light on" if "lighton" in file_name else "light off")
                 plt.xlabel(Title_x_axis,fontsize='x-large')
                 plt.ylabel(Title_y_axis,fontsize='x-large')
             #handles, labels = plt.gca().get_legend_handles_labels()
@@ -173,11 +222,11 @@ if __name__ == "__main__":
             #plt.title(f"Current vs Charge for data acquired at -20C")
             #plt.legend([handles[i] for i in order], [labels[i] for i in order], title="Dose")
             if y_plot == "HM_left":
-                plt.title(f"Signal Vth position (HM left) for unirradiated sensors data \n Acquired at +22C",fontsize='x-large')
+                plt.title(f"Signal baseline (HM left) for unirradiated sensors data \n Acquired at +22C",fontsize='x-large')
             if y_plot == "width":
                 plt.title(f"Width for unirradiated sensors data \n Acquired at +22C",fontsize='x-large')
             plt.legend(title="Light status",fontsize='x-large',loc='best')
-            plt.savefig(f'{os.getcwd()}/Plots_thesis/Unirradiated/{y_plot}_{x_plot}_unirr.png')
+            plt.savefig(f'{os.getcwd()}/Plots_thesis/Unirradiated/{y_plot}_{x_plot}_unirr{'_grouped' if args.group_plot else ''}.png')
             #plt.show()
             plt.close()
 
