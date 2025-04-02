@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 #import mplhep as hep
 
-LOW_TEMP = False
+LOW_TEMP = True
 ALL = False
 
 # Dose extraction from filename
@@ -170,11 +170,16 @@ if __name__ == "__main__":
                         else:
                             y_mean.append(np.nan)
                             y_std.append(np.nan)
-                    plt.errorbar(x_unique, y_mean, y_std, fmt='o', color=colors[i], label=fr"{extract_dose(file_name, True)}e14 $n_{{eq}}/cm^2$")
+                    yshift = np.min(y_mean)                            
+                    y_mean = np.array(y_mean - yshift)
+                    ydata = np.array(data[y_plot] - yshift)
+                    plt.errorbar(x_unique, y_mean, y_std, fmt='o', color=colors[i], label=f"{extract_dose(file_name, True)}e14 $n_{{eq}}/cm^2$")
                     p0 = [1,0]
-                    popt, pcov = curve_fit(linear,data[x_plot],data[y_plot],p0)
+                    popt, pcov = curve_fit(linear,data[x_plot],ydata,p0)
+                    mfit = popt[0]
+                    merr = np.sqrt(np.diag(pcov)[0])
                     x_curve = np.linspace(np.min(data[x_plot])-1,np.max(data[x_plot])+1,500)
-                    plt.plot(x_curve,linear(x_curve,popt[0],popt[1]),color = colors[i], linestyle = '--', label = fr"Fit {extract_dose(file_name, True)}e14 $n_{{eq}}/cm^2$")
+                    plt.plot(x_curve,linear(x_curve,popt[0],popt[1]),color = colors[i], linestyle = '--', label = f"Fit {extract_dose(file_name, True)}e14 $n_{{eq}}/cm^2$ \n m = {mfit:.1f}$\pm${merr:.1f}")
                 i += 1
                 plt.xlabel(Title_x_axis,fontsize='x-large')
                 plt.ylabel(Title_y_axis,fontsize='x-large')
