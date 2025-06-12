@@ -1,0 +1,1 @@
+Series of files for the analysis of the Charge Injection scanned performed on the ETROC2 chip developed for the Endcap Timing Layer of the CMS Phase 2 upgrade. The code was developed as part of my Master's Thesis work.
